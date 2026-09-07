@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-extension/
+artifacts/
+.next/
+out/
+coverage/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Authentication and test artifacts
+.auth/
+playwright/.cache/
+test-results/
+playwright-report/
+
+# Coding-agent scratch space
+# Keep durable instructions and decisions such as AGENTS.md and docs/ tracked.
+/DESIGN.md
+.agent-work/
+.codex-work/
+work/
+scratch/
+tmp/
+.tmp/
+*.agent.log
+*.agent.tmp
+
+# Machine-local agent settings
+.claude/settings.local.json

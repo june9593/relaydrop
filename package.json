@@ -1,0 +1,43 @@
+{
+  "name": "relaydrop",
+  "private": true,
+  "license": "MIT",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:extension": "tsc -p tsconfig.extension.json && vite build --config vite.extension.config.ts",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc -b && tsc -p tsconfig.extension.json && vitest run",
+    "check:extension": "tsc -p tsconfig.extension.json && vitest run extension/src",
+    "security:check": "node scripts/security-check.mjs",
+    "security:check:history": "node scripts/security-check.mjs --history",
+    "notices:generate": "node scripts/third-party-notices.mjs",
+    "notices:check": "node scripts/third-party-notices.mjs --check",
+    "package:extension:store": "pnpm build:extension && python3 scripts/package-extension.py",
+    "package:extension:sideload": "pnpm build:extension && python3 scripts/package-extension.py --sideload",
+    "release:check": "pnpm notices:check && pnpm check && pnpm build && pnpm build:extension && pnpm security:check"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^4.26.2",
+    "@fontsource-variable/cormorant-garamond": "^5.2.8",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@noble/hashes": "^2.4.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "workbox-window": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.4",
+    "vite-plugin-pwa": "^1.0.3",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.16.1"
+}

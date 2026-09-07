@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/june9593/relaydrop-support/security/advisories/new
+    about: Never post vulnerabilities, tokens, or personal content in a public issue.
+  - name: Read the support guide
+    url: https://github.com/june9593/relaydrop-support#readme
+    about: Installation, account, OneDrive, and privacy guidance.

@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest an improvement to your personal transfer workflow.
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: This is a public report. Do not include account details, private content, tokens, or security vulnerabilities.
+  - type: textarea
+    id: need
+    attributes:
+      label: What are you trying to do?
+      description: Describe the task using sample data.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+    validations:
+      required: true

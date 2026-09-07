@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RelayDrop">
+  <rect width="512" height="512" rx="112" fill="#181715"/>
+  <rect x="102" y="132" width="132" height="218" rx="24" fill="none" stroke="#faf9f5" stroke-width="24"/>
+  <rect x="278" y="162" width="146" height="112" rx="18" fill="none" stroke="#faf9f5" stroke-width="24"/>
+  <path d="M304 326h94M351 279v93" stroke="#cc785c" stroke-width="24" stroke-linecap="round"/>
+  <path d="M150 240h184m-36-38 39 38-39 38" fill="none" stroke="#cc785c" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="168" cy="315" r="10" fill="#5db8a6"/>
+</svg>

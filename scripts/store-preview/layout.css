@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f3eee5; color: #24201c; font-family: "Inter Variable", sans-serif; }
+.canvas { width: 1280px; height: 800px; display: grid; grid-template-columns: 1fr 456px; gap: 70px; padding: 30px 56px 30px 76px; overflow: hidden; }
+.copy { position: relative; padding-top: 16px; }
+.brand { display: flex; align-items: center; gap: 14px; font-size: 23px; font-weight: 550; letter-spacing: -.6px; }
+.brand img { height: 44px; width: 44px; border-radius: 22%; }
+.eyebrow { color: #99543c; font-size: 12px; font-weight: 650; letter-spacing: 2.5px; margin: 88px 0 21px; }
+h1 { font-family: "Cormorant Garamond Variable", serif; font-size: 76px; font-weight: 500; line-height: .99; letter-spacing: -2.8px; margin: 0 0 28px; white-space: pre-line; }
+.description { font-size: 19px; line-height: 1.65; max-width: 490px; color: #655b51; margin: 0; }
+.detail { margin-top: 38px; font-size: 13px; color: #775846; border-top: 1px solid #dcd1c3; padding-top: 22px; }
+.sample { position: absolute; bottom: 12px; font-size: 11px; color: #847b70; letter-spacing: .2px; }
+iframe { display: block; align-self: center; width: 456px; height: 600px; border: 1px solid #dbd2c7; border-radius: 18px; background: #faf9f5; box-shadow: 0 18px 44px #47311c18; }
+.dark { background: #191816; color: #f4f0e8; }
+.dark .eyebrow { color: #dc896c; }
+.dark .description { color: #b8b1a8; }
+.dark .detail { color: #d5ac94; border-color: #45403a; }
+.dark .sample { color: #aaa195; }
+.dark iframe { height: 740px; border-color: #484039; background: #191816; }

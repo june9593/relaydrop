@@ -1,0 +1,4 @@
+Contact: https://github.com/june9593/relaydrop-support/security/advisories/new
+Expires: 2027-09-07T00:00:00.000Z
+Preferred-Languages: zh, en
+Policy: https://github.com/june9593/relaydrop-support/security/policy

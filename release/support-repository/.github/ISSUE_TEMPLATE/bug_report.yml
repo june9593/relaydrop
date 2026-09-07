@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible RelayDrop problem without including private content.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include Microsoft account identifiers, access tokens, private notes, file names, preauthenticated OneDrive links, or screenshots of personal content. Security vulnerabilities must use Private Vulnerability Reporting instead.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Browser extension side panel
+        - Hosted PWA
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: RelayDrop version
+      placeholder: 0.5.2
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use placeholder file names and redact all personal information.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
