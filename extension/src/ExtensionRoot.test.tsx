@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, StrictMode } from "react";
+import { webcrypto } from "node:crypto";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
 import ExtensionRoot from "./ExtensionRoot";
@@ -29,6 +30,7 @@ it("reopens the real extension UI offline after session storage is lost and stil
     totalItems: 1, lastRefreshedAt: "2026-09-08T00:00:00Z"
   });
   const network = vi.fn().mockRejectedValue(new Error("offline"));
+  vi.stubGlobal("crypto", webcrypto);
   vi.stubGlobal("fetch", network);
   vi.stubGlobal("chrome", {
     identity: { getRedirectURL: () => "https://abcdefghijklmnop.chromiumapp.org/oauth2", launchWebAuthFlow: network },
@@ -42,7 +44,9 @@ it("reopens the real extension UI offline after session storage is lost and stil
     await act(async () => root.render(<StrictMode><ExtensionRoot /></StrictMode>));
     expect(host.textContent).toContain("Still here after two days");
     expect(host.querySelector<HTMLElement>("#relay-composer")?.hidden).toBe(true);
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 25)); });
+    await act(async () => {
+      await vi.waitFor(() => expect(network).toHaveBeenCalled());
+    });
     expect(host.textContent).toContain("Still here after two days");
     expect(host.textContent).toContain("Reconnect Microsoft");
     expect(network).not.toHaveBeenCalledWith(expect.stringContaining("graph.microsoft.com"), expect.anything());
