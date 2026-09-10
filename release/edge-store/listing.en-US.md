@@ -1,6 +1,6 @@
 # English store listing
 
-Prepared for 0.6.0; do not replace the published listing before device acceptance.
+Prepared for the owner-authorized 0.6.0 store update.
 
 ## Extension name
 

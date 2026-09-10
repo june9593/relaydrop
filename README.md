@@ -14,11 +14,12 @@ for compatibility and local development.
 
 ## Status
 
-Version **0.5.3** is published in Edge Add-ons. This branch prepares **0.6.0**:
+Version **0.6.0** adds:
 persistent cached startup even when Microsoft sign-in expires, newest-first
-refresh, and an Android extension entry point. Android Edge 151 is the target
-for device acceptance; passing desktop and simulated-platform tests does not
-replace that check. Version 0.6.0 is not yet published.
+refresh, and an Android extension entry point. The owner authorized publication
+before physical-device acceptance and will test on Android Edge 151 after the
+store update. Automated checks do not replace that device check. Store rollout
+depends on Microsoft's review; use the store page to check availability.
 
 Developer packages are available from [Releases](https://github.com/june9593/relaydrop/releases).
 Follow the [sideload instructions](docs/EDGE_EXTENSION.md) when installing a ZIP.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0 — Unreleased
+## 0.6.0 — 2026-09-10
 
 - Restore the account-scoped cached inbox before network authentication after a
   browser restart. Expired sign-in keeps cached content visible with Reconnect.
@@ -12,7 +12,8 @@
   Use persistent extension download tracking, show Downloaded on images, and hide
   unsupported local file-manager actions. Mobile setup links to Edge Add-ons.
 - Add startup, restart, offline, pagination, download-state and performance
-  regression checks. Android Edge 151 physical-device acceptance is pending.
+  regression checks. The owner authorized publication before Android Edge 151
+  physical-device acceptance; that check remains pending.
 
 ## 0.5.3
 

@@ -1,7 +1,8 @@
 # RelayDrop 0.6.0 acceptance record
 
-Prepared on September 10, 2026. This is an unreleased test build. The published
-Edge Add-ons version remains 0.5.3.
+Prepared on September 10, 2026. The owner explicitly instructed merge and store
+publication before physical-device acceptance, planning to test after the store
+update. Automated checks below passed; device checks are still pending.
 
 ## Automated release checks
 
@@ -48,7 +49,7 @@ successful send returns to the feed, Downloaded is visible, and Light/Dark
 layouts and the Reconnect banner do not overflow horizontally. No live user
 content was used for these checks.
 
-## Required device acceptance before publication
+## Device acceptance to perform after publication
 
 1. Desktop: update a test installation without uninstalling it, reopen after
    quitting Edge, and check that previous cards appear before network refresh.
@@ -66,5 +67,5 @@ content was used for these checks.
 
 No Android device is currently connected to this workspace; the Android checks
 above are pending, not claimed as passed. Existing 0.5.3 packages and store
-submission artifacts are preserved. Refresh store screenshots only after this
-package is accepted, then submit 0.6.0 through the existing Partner Center product.
+submission artifacts are preserved. The owner authorized 0.6.0 submission through
+the existing Partner Center product before these physical-device checks.

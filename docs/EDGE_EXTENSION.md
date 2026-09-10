@@ -4,8 +4,8 @@ RelayDrop uses a native Manifest V3 side panel on desktop Microsoft Edge and an
 extension-owned full-page view on Android. Both use the same authentication,
 durable cache, downloads, and OneDrive App Folder implementation.
 
-Version 0.5.3 is published in Edge Add-ons. Version 0.6.0 is in development;
-Android Edge 151 device acceptance is still required before publishing it.
+Version 0.6.0 is authorized for publication. Android Edge 151 device acceptance
+will follow the store update at the owner's request and is not yet recorded.
 
 ## What the extension does
 

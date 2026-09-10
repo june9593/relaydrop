@@ -1,6 +1,7 @@
-# Certification notes — 0.6.0 draft
+# Certification notes — 0.6.0
 
-Physical Android Edge 151 acceptance must be recorded before submitting this version.
+Automated and simulated-platform checks passed. Owner testing on physical
+Android Edge 151 is planned after store availability and is not claimed here.
 
 RelayDrop is an independent personal file and note transfer utility. All users
 have the same features. There are no paid, hidden, or organization-only features.

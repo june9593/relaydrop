@@ -56,7 +56,7 @@ needs one directory page for a warm head check and no unchanged item bodies.
 
 These tests simulate the platform. Actual Android Edge 151 launch, Microsoft
 OAuth, upload, download completion and restart recovery require device acceptance
-before store publication. The compatibility web app cannot confirm a browser
+after the store update, per the owner's explicit release instruction. The compatibility web app cannot confirm a browser
 download's filesystem completion and is not advertised as the mobile solution.
 
 ## References

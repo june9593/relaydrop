@@ -1,12 +1,12 @@
 # Edge Add-ons submission kit
 
-Target package: **0.6.0**, prepared for device acceptance. The published store
-version is **0.5.3**. Do not submit 0.6.0 before completing the Android Edge 151
-and desktop restart checks in [the acceptance record](VALIDATION-0.6.0.md).
+Target package: **0.6.0**. The owner explicitly authorized merge and store
+publication on September 10, 2026, with physical-device checks to follow the
+store update. Those checks remain pending in [the acceptance record](VALIDATION-0.6.0.md).
 
 The English and Chinese copy now describes extension-store distribution on
-Android. The current screenshots in `assets/` belong to the 0.5.3 submission;
-refresh them against the accepted 0.6.0 package before its store submission.
+Android. The screenshots in `assets/` are refreshed from the 0.6.0 components
+with fictional sample content; they are not physical-device test evidence.
 
 ## Previous 0.5.3 release
 
@@ -40,7 +40,8 @@ public support page or repository.
 The package, availability, properties, privacy declarations, and English listing
 are Complete. Developer verification is Authorized. The owner approved the three
 data-use attestations and publication; 0.5.3 is now published. Version 0.6.0 has
-not been submitted and needs its own validation and updated screenshots.
+its own submission using the updated copy and screenshots. Record the observed
+Partner Center result in the local release receipt.
 
 The owner confirmed the actual store CRX ID and successfully signed in with the
 0.5.3 test distribution. Its exact OAuth callback is registered. Production uses

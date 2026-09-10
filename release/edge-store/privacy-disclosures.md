@@ -1,6 +1,6 @@
 # Partner Center privacy disclosures
 
-These answers describe version 0.5.2. Match the actual field labels displayed by
+These answers describe version 0.6.0. Match the actual field labels displayed by
 Partner Center; do not select “no user data” merely because there is no RelayDrop
 content backend. The client accesses personal data and transmits selected
 content to Microsoft services.
@@ -15,7 +15,7 @@ RelayDrop lets a user send and retrieve notes, links, images, and files between 
 | --- | --- |
 | `sidePanel` | Displays the RelayDrop personal inbox and file composer in the browser sidebar. |
 | `identity` | Uses Microsoft OAuth with PKCE to sign in to a personal Microsoft account and receive the browser's extension-specific callback. |
-| `storage` | Keeps access tokens in session-only extension storage and stores device-local account hints, preferences, recent note/link text and file metadata, refresh state, and account-scoped browser download IDs. Logout clears authentication and the recent-item cache. |
+| `storage` | Keeps access tokens in session-only extension storage. Local storage holds account hints, preferences, up to 50 recent note/link texts and file metadata, OneDrive item IDs and version tags, refresh state, and account-scoped browser download IDs. Expired sign-in keeps cached items available; explicit logout clears authentication and the recent-item cache. |
 | `downloads` | Saves files selected by the user in the RelayDrop download folder, checks their local availability, reveals completed downloads, and removes a local copy on explicit request. |
 | `downloads.open` | Opens a completed, existing, safe download only after the user chooses Open local. Files that may contain active content are sent to Show in Folder instead. |
 | `https://graph.microsoft.com/*` | Reads and writes RelayDrop's dedicated OneDrive App Folder using the signed-in user's delegated Files.ReadWrite.AppFolder permission. |
@@ -59,7 +59,7 @@ statements presented by Partner Center before the account owner submits them.
 ## Retention and recipients
 
 Content goes directly to Microsoft identity, Microsoft Graph, and the user's
-OneDrive. Local cached note/link text and metadata may persist while signed in.
+OneDrive. Local cached note/link text and metadata may persist when sign-in expires.
 Logout clears authentication and the recent-item cache; downloaded files,
 download-tracking records, and preferences remain until separately removed.
 OneDrive retention and recycle-bin policies apply to cloud deletions. The hosted
