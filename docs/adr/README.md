@@ -21,3 +21,4 @@ Current records:
 - 0006: Cache Edge feed snapshots and use bounded foreground refresh
 - 0007: Show App Folder usage without broadening OneDrive access
 - 0008: Use the browser Downloads API for device-local file state
+- 0009: Restore cached startup, prioritize newest items, and use an Android extension page

@@ -154,7 +154,7 @@ export function SettingsDialog({
                 <label className="settings-toggle-row">
                   <span>
                     <strong>Refresh when opened</strong>
-                    <small>Checks for changes after a two-minute cooldown.</small>
+                    <small>Checks the newest items when opened, with a short cooldown.</small>
                   </span>
                   <input
                     type="checkbox"
@@ -168,7 +168,7 @@ export function SettingsDialog({
                 <label className="settings-toggle-row">
                   <span>
                     <strong>Refresh while open</strong>
-                    <small>Checks every five minutes while the panel is visible.</small>
+                    <small>Checks every 30 seconds while RelayDrop is visible.</small>
                   </span>
                   <input
                     type="checkbox"

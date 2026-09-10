@@ -136,6 +136,31 @@ describe("ExtensionAuthService", () => {
     expect(fetchImplementation).not.toHaveBeenCalled();
   });
 
+  it("restores the known account after a browser restart before any network request", async () => {
+    const account = { id: "account-id", name: "Alex", username: "owner@example.com" };
+    localValues.set(ACCOUNT_KEY, account);
+    localValues.set(CONNECTED_KEY, true);
+    sessionValues.clear();
+    launchWebAuthFlow.mockRejectedValue(new Error("temporarily offline"));
+
+    await expect(createService().initialize()).resolves.toEqual(account);
+    expect(launchWebAuthFlow).not.toHaveBeenCalled();
+  });
+
+  it("keeps the cached account visible when silent token renewal fails", async () => {
+    const account = { id: "account-id", name: "Alex", username: "owner@example.com" };
+    localValues.set(ACCOUNT_KEY, account);
+    localValues.set(CONNECTED_KEY, true);
+    launchWebAuthFlow.mockRejectedValue(new Error("Microsoft session expired"));
+    const service = createService();
+    const listener = vi.fn();
+    service.subscribe(listener);
+
+    await expect(service.getAccessToken()).rejects.toThrow("Microsoft sign-in is required");
+    expect(listener).not.toHaveBeenCalledWith(null);
+    await expect(service.initialize()).resolves.toEqual(account);
+  });
+
   it("repairs a Unicode account name cached by an older extension build", async () => {
     sessionValues.set(SESSION_KEY, {
       id: "cached-session",

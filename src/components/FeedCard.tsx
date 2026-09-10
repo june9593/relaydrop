@@ -32,6 +32,7 @@ interface FeedCardProps {
   isDeletingDownloaded: boolean;
   isCompactSurface: boolean;
   downloadState?: RelayDropDownloadState;
+  downloadActions?: { open: boolean; show: boolean; deleteLocal: boolean };
   onLoadPresentation: (id: string) => Promise<RelayDropFilePresentation>;
   onOpen: (item: RelayDropItem) => void;
   onDownload: (item: RelayDropItem) => void;
@@ -57,6 +58,7 @@ export function FeedCard({
   isDeletingDownloaded,
   isCompactSurface,
   downloadState,
+  downloadActions = { open: true, show: true, deleteLocal: true },
   onLoadPresentation,
   onOpen,
   onDownload,
@@ -212,6 +214,8 @@ export function FeedCard({
             </button>
             {isDownloaded ? (
               <>
+                <span className="download-complete" role="status"><CheckIcon />Downloaded</span>
+                {downloadActions.open && (
                 <button
                   className="icon-text-button"
                   type="button"
@@ -221,6 +225,8 @@ export function FeedCard({
                   <FileIcon />
                   Open local
                 </button>
+                )}
+                {downloadActions.show && (
                 <button
                   className="icon-text-button"
                   type="button"
@@ -230,6 +236,8 @@ export function FeedCard({
                   <FolderIcon />
                   Show
                 </button>
+                )}
+                {downloadActions.deleteLocal && (
                 <button
                   className="icon-text-button"
                   type="button"
@@ -239,6 +247,8 @@ export function FeedCard({
                   <TrashIcon />
                   {isDeletingDownloaded ? "Deleting…" : "Delete local"}
                 </button>
+                )}
+                {!downloadActions.open && <span className="download-location">In Edge downloads</span>}
               </>
             ) : (
               <button

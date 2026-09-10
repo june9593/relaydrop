@@ -15,8 +15,8 @@ import { ExtensionDownloadManager } from "./downloads/ExtensionDownloadManager";
 import { useExtensionSettings } from "./settings/useExtensionSettings";
 import { useRelayDropTheme } from "../../src/hooks/useRelayDropTheme";
 
-const OPEN_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
-const VISIBLE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const OPEN_REFRESH_COOLDOWN_MS = 5_000;
+const VISIBLE_REFRESH_INTERVAL_MS = 30_000;
 
 export default function ExtensionRoot() {
   const config = useMemo(getExtensionRuntimeConfig, []);
@@ -34,7 +34,6 @@ export default function ExtensionRoot() {
     <ConnectedExtension
       clientId={config.clientId}
       authority={config.authority}
-      webAppUrl={config.webAppUrl}
     />
   );
 }
@@ -42,7 +41,6 @@ export default function ExtensionRoot() {
 function ConnectedExtension(input: {
   clientId: string;
   authority: string;
-  webAppUrl?: string;
 }) {
   const authService = useMemo(
     () => new ExtensionAuthService(input),
@@ -70,7 +68,8 @@ function ConnectedExtension(input: {
       account={auth.account}
       authService={authService}
       onSignOut={auth.signOut}
-      webAppUrl={input.webAppUrl}
+      onReconnect={auth.signIn}
+      requiresReconnect={auth.requiresReconnect}
     />
   );
 }
@@ -79,7 +78,8 @@ function SignedInExtension(input: {
   account: ExtensionAccount;
   authService: ExtensionAuthService;
   onSignOut: () => Promise<void>;
-  webAppUrl?: string;
+  onReconnect: () => Promise<void>;
+  requiresReconnect: boolean;
 }) {
   const repository = useMemo(
     () =>
@@ -128,6 +128,9 @@ function SignedInExtension(input: {
       accountName={input.account.name}
       accountSubtitle={input.account.username}
       onSignOut={signOut}
+      onReconnect={input.onReconnect}
+      requiresReconnect={input.requiresReconnect}
+      device={new URLSearchParams(location.search).get("view") === "tab" && /Android/i.test(navigator.userAgent) ? "phone" : "desktop"}
       relayOptions={relayOptions}
       syncPreferences={settings.isLoaded ? settings.preferences : undefined}
       onSyncPreferencesChange={
@@ -136,7 +139,6 @@ function SignedInExtension(input: {
       syncSettingsError={appearance.error ?? settings.error}
       theme={appearance.theme}
       onThemeChange={appearance.updateTheme}
-      mobileWebUrl={input.webAppUrl}
     />
   );
 }

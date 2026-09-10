@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Follow-up: [ADR-0009](0009-cached-startup-and-android-extension.md) supersedes
+  the refresh intervals and phone distribution assumptions for 0.6.0.
 
 ## Context
 

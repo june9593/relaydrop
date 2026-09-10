@@ -93,6 +93,7 @@ interface TokenResponse {
 }
 
 export class ExtensionAuthService {
+  private authenticationRequired = false;
   private initialization?: Promise<ExtensionAccount | null>;
   private tokenRequest?: { authEpoch: string; promise: Promise<string> };
   private notificationRevision = 0;
@@ -129,6 +130,10 @@ export class ExtensionAuthService {
     return this.initialization;
   }
 
+  get requiresReconnect(): boolean {
+    return this.authenticationRequired;
+  }
+
   async signIn(): Promise<ExtensionAccount> {
     const previousState = await this.readAuthState();
     const hint = await this.readAccount(previousState.authEpoch);
@@ -157,6 +162,7 @@ export class ExtensionAuthService {
   }
 
   async signOut(): Promise<void> {
+    this.authenticationRequired = false;
     const previousState = await this.readAuthState();
     const authEpoch = randomBase64Url(16);
     await this.platform.storage.local.set({
@@ -202,6 +208,10 @@ export class ExtensionAuthService {
         !isSilentSsoSuppressed(confirmedState) &&
         confirmedSession?.id === session.id
       ) {
+        if (this.authenticationRequired) {
+          this.authenticationRequired = false;
+          this.commitNotification(session.account);
+        }
         return session.accessToken;
       }
       authState = confirmedState;
@@ -264,6 +274,15 @@ export class ExtensionAuthService {
       session?.authEpoch === authState.authEpoch
         ? session.account
         : await this.readAccount(authState.authEpoch);
+    // A remembered account selects its local snapshot; it does not authorize
+    // Graph requests. Token renewal is deferred to getAccessToken so a network
+    // outage or a browser restart never blocks displaying the cached inbox.
+    if (authState.connected && hint) {
+      const current = await this.readAuthState();
+      return current.authEpoch === authState.authEpoch && !isSilentSsoSuppressed(current)
+        ? hint
+        : null;
+    }
     if (authState.connected && !hint) {
       return null;
     }
@@ -303,7 +322,10 @@ export class ExtensionAuthService {
     } catch {
       const currentState = await this.readAuthState().catch(() => undefined);
       if (currentState?.authEpoch === authState.authEpoch) {
-        this.commitNotification(null);
+        this.authenticationRequired = true;
+        this.commitNotification(
+          currentState.connected && !isSilentSsoSuppressed(currentState) ? hint ?? null : null
+        );
       }
       throw new ExtensionAuthenticationRequiredError();
     }
@@ -433,6 +455,7 @@ export class ExtensionAuthService {
       ]);
       throw new Error("Microsoft sign-in was superseded by a newer account action.");
     }
+    this.authenticationRequired = false;
     this.commitNotification(session.account);
     return session;
   }
@@ -594,22 +617,24 @@ export class ExtensionAuthService {
     const revision = ++this.notificationRevision;
     const authState = await this.readAuthState();
     const session = await this.readSession(authState.authEpoch);
-    const account =
+    const usableSession =
       session &&
       session.authEpoch === authState.authEpoch &&
       !isSilentSsoSuppressed(authState) &&
-      (await this.isUsable(session))
-        ? session.account
-        : null;
+      await this.isUsable(session);
+    let account = usableSession && session ? session.account : null;
+    if (!account && authState.connected && !isSilentSsoSuppressed(authState)) {
+      account = await this.readAccount(authState.authEpoch) ?? null;
+    }
     const confirmedState = await this.readAuthState();
     if (
       revision !== this.notificationRevision ||
-      confirmedState.authEpoch !== authState.authEpoch ||
-      isSilentSsoSuppressed(confirmedState)
+      confirmedState.authEpoch !== authState.authEpoch
     ) {
       return;
     }
-    this.notify(account);
+    if (usableSession) this.authenticationRequired = false;
+    this.notify(isSilentSsoSuppressed(confirmedState) ? null : account);
   }
 
   private commitNotification(account: ExtensionAccount | null): void {

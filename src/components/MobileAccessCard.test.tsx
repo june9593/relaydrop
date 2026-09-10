@@ -3,21 +3,21 @@ import { describe, expect, it } from "vitest";
 import { MobileAccessCard } from "./MobileAccessCard";
 
 describe("MobileAccessCard", () => {
-  it("explains the mobile web flow without naming the hosting provider", () => {
+  it("points Android users to the extension store", () => {
     const html = renderToStaticMarkup(
-      <MobileAccessCard webAppUrl="https://relaydrop.example/" />
+      <MobileAccessCard />
     );
 
-    expect(html).toContain("Use RelayDrop on your phone");
+    expect(html).toContain("Edge on Android");
     expect(html).toContain("same Microsoft account");
-    expect(html).toContain("relaydrop.example");
+    expect(html).toContain("haadfdpcnjildomodlbpgapoemgdejef");
     expect(html).not.toContain("Azure");
   });
 
-  it("keeps instructions visible when a build has no configured URL", () => {
+  it("does not direct mobile users to a hosted web app", () => {
     const html = renderToStaticMarkup(<MobileAccessCard />);
 
-    expect(html).toContain("has not been configured");
+    expect(html).toContain("Open extension store");
     expect(html).not.toContain("Open web app");
   });
 });

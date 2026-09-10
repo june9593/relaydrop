@@ -31,8 +31,9 @@ class SampleRepository extends DemoRelayDropRepository {
 }
 
 const downloadManager: RelayDropDownloadManager = {
+  capabilities: { open: true, show: scene !== "android", deleteLocal: scene !== "android" },
   async getStates() {
-    return scene === "downloads" ? {
+    return scene === "downloads" || scene === "android" ? {
       [fileId]: { itemId: fileId, status: "complete", downloadId: 1, fileName: "weekend-guide.pdf", bytesReceived: 860160, totalBytes: 860160 }
     } : {};
   },
@@ -53,7 +54,8 @@ function Preview() {
     theme={appearance.theme} onThemeChange={appearance.updateTheme}
     syncPreferences={preferences} onSyncPreferencesChange={setPreferences}
     relayOptions={relayOptions} onSignOut={() => {}}
-    mobileWebUrl={import.meta.env.VITE_RELAYDROP_WEB_URL} />;
+    requiresReconnect={scene === "offline"} onReconnect={() => {}}
+    device={scene === "android" ? "phone" : "desktop"} />;
 }
 
 document.documentElement.dataset.surface = "sidepanel";

@@ -22,6 +22,7 @@ export interface RelayDropDownloadRequest {
 }
 
 export interface RelayDropDownloadManager {
+  readonly capabilities?: { open: boolean; show: boolean; deleteLocal: boolean };
   getStates(itemIds: string[]): Promise<Record<string, RelayDropDownloadState>>;
   subscribe(listener: (state: RelayDropDownloadState) => void): () => void;
   download(request: RelayDropDownloadRequest): Promise<RelayDropDownloadState>;

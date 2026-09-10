@@ -44,9 +44,9 @@ interface ExtensionDownloadsApi {
     saveAs: false;
   }): Promise<number>;
   search(query: { id: number }): Promise<ExtensionDownloadItem[]>;
-  open(downloadId: number): Promise<void> | void;
-  show(downloadId: number): void;
-  removeFile(downloadId: number): Promise<void>;
+  open?(downloadId: number): Promise<void> | void;
+  show?(downloadId: number): void;
+  removeFile?(downloadId: number): Promise<void>;
   onChanged: {
     addListener(listener: (delta: ExtensionDownloadDelta) => void): void;
     removeListener(listener: (delta: ExtensionDownloadDelta) => void): void;
@@ -92,6 +92,15 @@ export class ExtensionDownloadManager implements RelayDropDownloadManager {
     private readonly locks: ExtensionDownloadLockManager | undefined = getDefaultLockManager()
   ) {
     this.key = DOWNLOADS_KEY_PREFIX + encodeURIComponent(accountId);
+  }
+
+  get capabilities() {
+    const mobile = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+    return {
+      open: typeof this.platform.downloads.open === "function",
+      show: !mobile && typeof this.platform.downloads.show === "function",
+      deleteLocal: !mobile && typeof this.platform.downloads.removeFile === "function"
+    };
   }
 
   async getStates(itemIds: string[]): Promise<Record<string, RelayDropDownloadState>> {
@@ -147,6 +156,7 @@ export class ExtensionDownloadManager implements RelayDropDownloadManager {
   }
 
   async open(itemId: string): Promise<void> {
+    if (!this.platform.downloads.open) throw new Error("Open this file from Edge's Downloads menu.");
     const { record, item: current } = await this.requireCompleteDownload(itemId);
     const localFileName = current?.filename.split(/[\\/]/).pop() ?? record.fileName;
     if (
@@ -162,12 +172,16 @@ export class ExtensionDownloadManager implements RelayDropDownloadManager {
   }
 
   async show(itemId: string): Promise<void> {
+    if (!this.capabilities.show || !this.platform.downloads.show) throw new Error("Find this file in Edge's Downloads menu.");
     const { record } = await this.requireCompleteDownload(itemId);
     this.platform.downloads.show(record.downloadId);
   }
 
   deleteLocal(itemId: string): Promise<RelayDropDownloadState> {
     return this.withItemLock(itemId, async () => {
+      if (!this.capabilities.deleteLocal || !this.platform.downloads.removeFile) {
+        throw new Error("Delete this file using your device's file manager.");
+      }
       const records = await this.readRecords();
       const record = records[itemId];
       if (!record) {

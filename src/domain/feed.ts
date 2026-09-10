@@ -22,7 +22,8 @@ export function isSafeHttpUrl(value: string): boolean {
 export function sortFeed(items: RelayDropItem[]): RelayDropItem[] {
   return [...items].sort((left, right) => {
     const timeDifference =
-      new Date(right.serverCreatedAt).getTime() - new Date(left.serverCreatedAt).getTime();
+      new Date(right.serverUpdatedAt ?? right.serverCreatedAt).getTime() -
+      new Date(left.serverUpdatedAt ?? left.serverCreatedAt).getTime();
 
     if (timeDifference !== 0) {
       return timeDifference;

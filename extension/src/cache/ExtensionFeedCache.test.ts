@@ -9,6 +9,21 @@ import {
 } from "./ExtensionFeedCache";
 
 describe("ExtensionFeedCache", () => {
+  it("persists cloud version metadata for a warm refresh without persisting download URLs", async () => {
+    const cache = new ExtensionFeedCache("account-a", createStorage(new Map()));
+    const snapshot = createSnapshot(1);
+    snapshot.items[0] = { ...snapshot.items[0], serverUpdatedAt: "2026-09-10T00:00:00Z", cloudVersion: { id: "drive-item", eTag: '"v2"' } };
+    await cache.save(snapshot);
+    await expect(cache.load()).resolves.toMatchObject({ items: [{ serverUpdatedAt: "2026-09-10T00:00:00Z", cloudVersion: { id: "drive-item", eTag: '"v2"' } }] });
+  });
+  it("restores the same persisted feed in a new instance days after the last refresh", async () => {
+    const storage = createStorage(new Map());
+    await new ExtensionFeedCache("account-a", storage).save(createSnapshot(3));
+    const reopened = new ExtensionFeedCache("account-a", storage);
+    expect((await reopened.load())?.items).toHaveLength(3);
+    await expect(reopened.tryBeginAutoRefresh(120_000, Date.UTC(2026, 8, 9))).resolves.toBe(true);
+    expect((await reopened.load())?.items).toHaveLength(3);
+  });
   it("stores only allowlisted feed metadata and caps the snapshot at 50 items", async () => {
     const values = new Map<string, unknown>();
     const cache = new ExtensionFeedCache("account-a", createStorage(values));

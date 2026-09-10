@@ -5,6 +5,17 @@ import {
 } from "./ExtensionDownloadManager";
 
 describe("ExtensionDownloadManager", () => {
+  it("restores a completed Android download after the extension page is closed", async () => {
+    const platform = createPlatform();
+    await new ExtensionDownloadManager("account-a", platform).download({
+      itemId: "image-a", fileName: "photo.png", loadBlob: async () => new Blob(["image"])
+    });
+    const reopened = new ExtensionDownloadManager("account-a", platform);
+    await expect(reopened.getStates(["image-a"])).resolves.toMatchObject({
+      "image-a": { status: "complete", downloadId: 1 }
+    });
+    await expect(new ExtensionDownloadManager("account-b", platform).getStates(["image-a"])).resolves.toEqual({});
+  });
   it("stores files in Downloads/RelayDrop and avoids duplicate downloads", async () => {
     const platform = createPlatform();
     const locks = createLockManager();

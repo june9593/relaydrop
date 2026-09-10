@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Composer } from "./components/Composer";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { AccountMenu } from "./components/AccountMenu";
@@ -46,7 +46,9 @@ interface AppProps {
   syncSettingsError?: string | null;
   theme?: RelayDropTheme;
   onThemeChange?: (theme: RelayDropTheme) => void;
-  mobileWebUrl?: string;
+  device?: RelayDropDevice;
+  requiresReconnect?: boolean;
+  onReconnect?: () => void | Promise<void>;
 }
 
 export default function App({
@@ -62,46 +64,34 @@ export default function App({
   syncSettingsError,
   theme,
   onThemeChange,
-  mobileWebUrl
+  device,
+  requiresReconnect = false,
+  onReconnect
 }: AppProps) {
   const source = useMemo(
-    () => (surface === "sidepanel" ? "desktop" : detectDevice()),
-    [surface]
+    () => device ?? (surface === "sidepanel" ? "desktop" : detectDevice()),
+    [device, surface]
   );
   const relay = useRelayDrop(repository, source, relayOptions);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(surface !== "sidepanel");
   const storageRefreshKey = `${relay.items.length}:${relay.items[0]?.id ?? ""}:${
     relay.lastRefreshedAt?.getTime() ?? 0
   }`;
   const storageInfo = useRelayDropStorage(
     repository,
-    mode === "onedrive",
+    mode === "onedrive" && (surface !== "sidepanel" || settingsOpen),
     storageRefreshKey
   );
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [deleteTarget, setDeleteTarget] = useState<RelayDropItem | null>(null);
   const [previewTarget, setPreviewTarget] = useState<{
     item: RelayDropFileItem;
     presentation: RelayDropFilePresentation;
   } | null>(null);
-  const loadMoreSentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => () => repository.dispose?.(), [repository]);
 
-  useEffect(() => {
-    if (!relay.hasMore || !loadMoreSentinel.current) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) void relay.loadMore();
-      },
-      { rootMargin: "500px 0px" }
-    );
-    observer.observe(loadMoreSentinel.current);
-    return () => observer.disconnect();
-  }, [relay.hasMore, relay.loadMore]);
 
   const openFile = useCallback(
     async (item: RelayDropItem) => {
@@ -113,13 +103,13 @@ export default function App({
       const kind =
         knownPresentation?.kind ?? classifyFile(item.file.mediaType, item.file.name);
       const usesInlinePreview = kind === "image" || kind === "video";
-      const pendingTab = !usesInlinePreview && !knownPresentation
+      const pendingTab = !usesInlinePreview
         ? window.open("about:blank", "_blank")
         : null;
 
       try {
         const presentation =
-          knownPresentation ?? (await relay.loadFilePresentation(item.id));
+          await relay.loadFilePresentation(item.id);
 
         if (
           (presentation.kind === "image" || presentation.kind === "video") &&
@@ -190,7 +180,7 @@ export default function App({
         <div className="header-actions">
           <span className="connection-label">
             <span className="status-dot" />
-            {mode === "demo" ? "Demo mode" : "OneDrive connected"}
+            {mode === "demo" ? "Demo mode" : requiresReconnect ? "Reconnect OneDrive" : "OneDrive"}
           </span>
           <AccountMenu
             accountName={accountName}
@@ -288,10 +278,9 @@ export default function App({
               </button>
             </div>
 
-            {surface === "sidepanel" && mode === "onedrive" && (
+            {surface === "sidepanel" && mode === "onedrive" && source !== "phone" && (
               <div className="sidepanel-utility-stack">
-                <OneDriveStorageCard info={storageInfo} variant="sidepanel" />
-                <MobileAccessCard webAppUrl={mobileWebUrl} />
+                <MobileAccessCard />
               </div>
             )}
 
@@ -305,7 +294,14 @@ export default function App({
               </div>
             )}
 
-            {relay.error && (
+            {requiresReconnect && (
+              <div className="reconnect-banner" role="status">
+                <p>Your saved items are available. Reconnect to check for new items and send files.</p>
+                <button type="button" onClick={() => void onReconnect?.()}>Reconnect Microsoft</button>
+              </div>
+            )}
+
+            {relay.error && !requiresReconnect && (
               <div className="error-banner" role="alert">
                 <span>{relay.error}</span>
                 <button type="button" onClick={relay.clearError}>
@@ -320,7 +316,7 @@ export default function App({
                   <div>
                     <h2 id="feed-title">Recent items</h2>
                     <p>
-                      {relay.lastRefreshedAt
+                      {relay.isRefreshing ? "Checking for the newest items…" : relay.lastRefreshedAt
                         ? "Last refreshed " +
                           relay.lastRefreshedAt.toLocaleTimeString([], {
                             hour: "2-digit",
@@ -330,7 +326,7 @@ export default function App({
                     </p>
                   </div>
                   {relay.items.length > 0 && (
-                    <span className="item-count">{relay.totalItems} items</span>
+                    <span className="item-count">{relay.items.length} shown</span>
                   )}
                 </div>
 
@@ -353,6 +349,7 @@ export default function App({
                         isDeletingDownloaded={relay.deletingLocalIds.has(item.id)}
                         isCompactSurface={surface === "sidepanel"}
                         downloadState={relay.downloadStates[item.id]}
+                        downloadActions={relayOptions?.downloadManager?.capabilities}
                         onLoadPresentation={relay.loadFilePresentation}
                         onOpen={openFile}
                         onDownload={relay.downloadItem}
@@ -362,24 +359,33 @@ export default function App({
                         onDelete={setDeleteTarget}
                       />
                     ))}
-                    <div ref={loadMoreSentinel} className="load-more-sentinel" aria-hidden="true" />
                     <p className="feed-end" aria-live="polite">
-                      {relay.isLoadingMore
-                        ? "Loading older items…"
-                        : relay.hasMore
-                          ? "Scroll for older items"
-                          : "You are all caught up"}
+                      {relay.hasMore ? (
+                        <button className="load-older-button" type="button"
+                          disabled={relay.isLoadingMore || relay.isRefreshing}
+                          onClick={() => void relay.loadMore()}>
+                          {relay.isLoadingMore ? "Loading older items…" : "Load older items"}
+                        </button>
+                      ) : "You are all caught up"}
                     </p>
                   </div>
                 )}
               </section>
 
               <aside className="composer-panel">
+                {surface === "sidepanel" && (
+                  <button className="composer-toggle" type="button"
+                    aria-expanded={composerOpen} aria-controls="relay-composer"
+                    disabled={relay.isSending} onClick={() => setComposerOpen(open => !open)}>
+                    {composerOpen ? "Close composer" : "Send a note or file"}
+                  </button>
+                )}
+                <div id="relay-composer" hidden={!composerOpen}>
                 <Composer
                   isSending={relay.isSending}
                   fileTransfer={relay.fileTransfer}
-                  onSendText={relay.sendText}
-                  onSendFile={relay.sendFile}
+                  onSendText={async text => { await relay.sendText(text); if (surface === "sidepanel") setComposerOpen(false); }}
+                  onSendFile={async file => { await relay.sendFile(file); if (surface === "sidepanel") setComposerOpen(false); }}
                   onCancelFileUpload={relay.cancelFileUpload}
                   onResetFileTransfer={relay.resetFileTransfer}
                 />
@@ -388,6 +394,7 @@ export default function App({
                     ? "Items are held in memory for this preview and disappear when the page reloads."
                     : "Items are stored in RelayDrop's private OneDrive app folder."}
                 </p>
+                </div>
               </aside>
             </div>
           </div>

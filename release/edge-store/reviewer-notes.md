@@ -1,4 +1,6 @@
-# Certification notes
+# Certification notes — 0.6.0 draft
+
+Physical Android Edge 151 acceptance must be recorded before submitting this version.
 
 RelayDrop is an independent personal file and note transfer utility. All users
 have the same features. There are no paid, hidden, or organization-only features.
@@ -13,12 +15,11 @@ ID before submitting. The developer sideload ID alone is not sufficient proof.
 The expected form is `https://<extension-id>.chromiumapp.org/oauth2`.
 
 The store package omits the developer-only manifest key and includes required
-third-party license notices. It uses the same executable assets as the
-owner-validated 0.5.2 sideload build.
+third-party license notices. Version 0.6.0 changes startup, paging and Android UI;
+the older 0.5.3 acceptance does not substitute for validating this package.
 
-The local submission bundle includes `submission-urls.txt` with the actual
-companion web app, privacy, and support URLs. Paste the companion URL here when
-entering these notes in Partner Center.
+The public installation entry is Edge Add-ons. Keep the existing privacy and
+support URLs in Partner Center. The mobile workflow uses the extension.
 
 ## Test steps
 
@@ -27,11 +28,10 @@ entering these notes in Partner Center.
    access to the application's OneDrive folder.
 2. Send a harmless note, such as “RelayDrop certification test”. Select Refresh
    if needed. Reopen the panel and confirm the note is present.
-3. Open the companion web app in another browser/device, sign in with the same
-   account, and choose Refresh. Confirm the same note appears. The PWA requires
-   manual refresh; there are no push notifications.
+3. Open the extension on another desktop or Android device, sign in with the
+   same account, and choose Refresh. Android opens a full-page extension view.
 4. In the extension, choose or paste a small PNG or text file. Check the image
-   preview where applicable, then send it. Confirm retrieval in the web app.
+   preview where applicable, then send it. Confirm retrieval in the other extension.
 5. Download that file in the extension. Inspect the local actions and use Show
    in Folder. The browser controls its download location; RelayDrop adds a
    `RelayDrop/` subfolder. Open local is available for safe completed files.
@@ -50,8 +50,9 @@ entering these notes in Partner Center.
 - Files have a 100 MB limit. Use small files for routine certification. No general
   low-memory phone stress result is claimed.
 - Cached extension entries may appear before the next cloud refresh. By default,
-  opening checks after a two-minute cooldown, and visible panels check every five
-  minutes. Closed panels do not sync.
-- The interface is in English; the mobile companion is a web app.
+  opening checks after a five-second cooldown, subject to a shared 15-second
+  lease. Visible pages check every 30 seconds. Closed pages do not sync.
+- The interface is in English. Android uses a bundled extension page and shares
+  the browser download-tracking path. Unsupported local file actions are hidden.
 - The extension has no website content script and needs no access to arbitrary
   local `file://` pages.

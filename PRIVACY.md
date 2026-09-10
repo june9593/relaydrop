@@ -34,6 +34,12 @@ authentication state and recent-item cache. Appearance and refresh settings,
 download-tracking records, and files already downloaded to the device remain
 until the user clears or deletes them.
 
+An expired Microsoft session or a temporary connection failure does not erase
+the extension's cached inbox. Cached content can remain visible until the user
+explicitly logs out. The cache may include OneDrive item identifiers and version
+tags to avoid downloading unchanged item details again; it does not authorize
+remote access or contain file bodies or temporary download links.
+
 The web app stores Microsoft authentication state and the appearance preference
 in browser storage so sessions can survive a tab or browser restart. It does not
 persist RelayDrop file bodies or a feed cache in browser storage.

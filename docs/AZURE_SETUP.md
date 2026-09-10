@@ -80,11 +80,11 @@ Set:
     VITE_RELAYDROP_MODE=onedrive
     VITE_MICROSOFT_CLIENT_ID=<application-client-id>
     VITE_MICROSOFT_AUTHORITY=https://login.microsoftonline.com/consumers
-    VITE_RELAYDROP_WEB_URL=https://relaydrop.example
 
 The local environment file is ignored by Git and must not be committed.
 
-`VITE_RELAYDROP_WEB_URL` is embedded only in the browser-extension build and powers its phone setup card. It is a public destination by design; use the final custom domain when available instead of exposing a temporary host name.
+The extension's phone setup card links to Edge Add-ons. A hosted mobile-web
+URL is not needed by the extension build.
 
 Start RelayDrop:
 

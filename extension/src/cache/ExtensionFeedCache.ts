@@ -318,7 +318,7 @@ function sanitizeSnapshot(snapshot: RelayDropFeedSnapshot): RelayDropFeedSnapsho
 }
 
 function cursorAfterCachedItem(item: RelayDropItem | undefined): string | undefined {
-  return item ? JSON.stringify([item.serverCreatedAt, item.id + ".json"]) : undefined;
+  return item ? JSON.stringify([item.serverUpdatedAt ?? item.serverCreatedAt, item.id + ".json"]) : undefined;
 }
 
 function parseItem(value: unknown): RelayDropItem | null {
@@ -328,10 +328,16 @@ function parseItem(value: unknown): RelayDropItem | null {
   const id = parseBoundedString(value.id, 128);
   const createdAt = parseDateString(value.createdAt);
   const serverCreatedAt = parseDateString(value.serverCreatedAt);
+  const serverUpdatedAt = parseDateString(value.serverUpdatedAt);
   const source = parseDevice(value.source);
   if (!id || !createdAt || !serverCreatedAt || !source) {
     return null;
   }
+  const version = value.cloudVersion;
+  const cloudVersion = isRecord(version) &&
+    parseBoundedString(version.id, 512) && parseBoundedString(version.eTag, 1024)
+    ? { id: version.id as string, eTag: version.eTag as string }
+    : undefined;
 
   if (value.type === "text" || value.type === "link") {
     if (typeof value.text !== "string" || value.text.length > MAX_TEXT_LENGTH) {
@@ -346,7 +352,9 @@ function parseItem(value: unknown): RelayDropItem | null {
       text: value.text,
       createdAt,
       serverCreatedAt,
-      source
+      ...(serverUpdatedAt ? { serverUpdatedAt } : {}),
+      source,
+      ...(cloudVersion ? { cloudVersion } : {})
     };
   }
 
@@ -381,7 +389,9 @@ function parseItem(value: unknown): RelayDropItem | null {
     file: { name, size, mediaType },
     createdAt,
     serverCreatedAt,
-    source
+    ...(serverUpdatedAt ? { serverUpdatedAt } : {}),
+    source,
+    ...(cloudVersion ? { cloudVersion } : {})
   };
 }
 

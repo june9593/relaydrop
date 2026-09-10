@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "RelayDrop",
   "short_name": "RelayDrop",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjXZE0OdsuFyqZ0MjnJAHj7h1noeNSg/ZdqUVeQ0IFt1tT5vS9zYhHMc0eGZAhXCTAawXCFRuK/aSwDv9EIShKtRODmvWK+P2SHjeaSeN3RQNMB7NZ6P5dHHZPzZswRf86RoZinsx5it/fRgE5w6sn0E116M6w+j7GrzHqUlRCz3QtzxVEc8T88/hDaZtCUgtyVPoy6y+JZwyhpwn/Vm6iGJB95YDJu6c9lwJ9eh0IqofiJrsABbpzuRlJzN4QLVM0X9DvY3t5FS0nRGysViMsymrRQ58c/HWDe+/Fy4oELtnVNHCEeEUWIRrY+Y8UB7gXRWmTIuCm/BQge7V/RAoYQIDAQAB",
   "minimum_chrome_version": "116",
   "description": "Send files and notes privately between your own devices.",

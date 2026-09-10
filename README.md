@@ -2,39 +2,48 @@
 
 RelayDrop is a private, cross-device personal inbox for sending text, links, images, and files between a user's own devices.
 
-RelayDrop is open source under the MIT license. Use the desktop Edge companion
-and the hosted web app shown in its phone setup card, or deploy your own copy.
+RelayDrop is free and open source under the MIT license.
+[Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/relaydrop/haadfdpcnjildomodlbpgapoemgdejef).
 
-The initial product is intentionally small: open the same installable web app on a phone and a computer, sign in with the same Microsoft account, send an item, and retrieve it from the other device. The PWA keeps explicit manual refresh, while the Edge side-panel companion can restore a local feed snapshot immediately and run bounded foreground refreshes. RelayDrop is inspired by Edge Drop and WeChat File Transfer Assistant, without chat, contacts, push notifications, or a dedicated synchronization server.
+Sign in with the same personal Microsoft account on your devices, send an item,
+and retrieve it on the other device. RelayDrop uses your OneDrive App Folder,
+with no dedicated synchronization server. The desktop extension uses Edge's
+sidebar; the upcoming Android extension opens its own full-page inbox. Mobile
+setup points to the extension store. The existing web build remains available
+for compatibility and local development.
 
 ## Status
 
-RelayDrop PWA v0.1 is deployed and usable. Personal Microsoft account sign-in, OneDrive App Folder storage, cross-session text and file retrieval, authenticated downloads, and deletion have been validated against the production site. Edge version 0.5.2 passed owner validation on September 7, 2026. Version 0.5.3 adds MIT licensing and distribution notices for the first open-source release; its executable assets are unchanged. The owner also verified sign-in with the store extension ID. Version 0.5.3 was submitted to Edge Add-ons on September 7, 2026 and is under review; a store installation link will be added after approval.
+Version **0.5.3** is published in Edge Add-ons. This branch prepares **0.6.0**:
+persistent cached startup even when Microsoft sign-in expires, newest-first
+refresh, and an Android extension entry point. Android Edge 151 is the target
+for device acceptance; passing desktop and simulated-platform tests does not
+replace that check. Version 0.6.0 is not yet published.
 
 Developer packages are available from [Releases](https://github.com/june9593/relaydrop/releases).
 Follow the [sideload instructions](docs/EDGE_EXTENSION.md) when installing a ZIP.
 
 ## MVP
 
-- Installable responsive web app for phone and desktop
+- Desktop side panel and a full-page extension view for Android
 - Microsoft account sign-in
 - Sign-in persistence across tabs and browser restarts, with opportunistic Microsoft web SSO
 - One private feed per signed-in user
 - Send text, links, images, and files, including pasted clipboard files
-- Explicit refresh in the PWA; cached startup plus rate-limited foreground refresh in the Edge side panel
+- Immediate cached startup, newest-first foreground refresh, and older items on demand
 - Copy text, preview supported content, download files, and delete items
 - In the Edge side panel, track local downloads and safely retry uploads or partial deletion
 - OneDrive App Folder storage through Microsoft Graph
 - Configurable file-size limit
-- Optional desktop Edge side-panel build using the same OneDrive feed
+- One extension package and OneDrive feed across supported Edge devices
 
 ## Product principles
 
 - Private by default
-- Predictable synchronization with a manual PWA flow and user-controlled side-panel refresh settings
+- Predictable synchronization with cached items and user-controlled foreground refresh
 - Least-privilege access to OneDrive
 - No RelayDrop backend holding user content
-- Useful as a standalone web app; the Edge side panel remains an optional companion
+- Extension-store distribution on desktop and Android
 
 ## Out of scope for the first release
 
@@ -46,7 +55,14 @@ Follow the [sideload instructions](docs/EDGE_EXTENSION.md) when installing a ZIP
 
 ## Technical direction
 
-RelayDrop starts as a static Progressive Web App. It authenticates the user with Microsoft identity and uses Microsoft Graph with the Files.ReadWrite.AppFolder permission. Content is stored in the application's dedicated OneDrive folder. The PWA fetches feed data only after the user explicitly presses Refresh. The Edge side panel restores an account-scoped snapshot first, then checks OneDrive after a two-minute open cooldown and every five minutes while the panel remains visible; either behavior can be disabled in Settings.
+RelayDrop authenticates with Microsoft identity and uses Microsoft Graph with
+the Files.ReadWrite.AppFolder permission. A remembered account selects its
+device-local cache immediately; remote requests still require a valid token.
+The extension checks the newest items on open with a five-second cooldown and
+every 30 seconds while visible. A shared 15-second lease limits automatic
+request bursts. Either behavior can be disabled in Settings. Older pages load
+only on request; unchanged cached item bodies are reused by their OneDrive
+version. The compatibility web build retains manual refresh.
 
 The side panel reports the size of RelayDrop's own App Folder and opens that folder in OneDrive for management. It does not show the account's complete OneDrive quota because that would require the broader Files.Read permission.
 

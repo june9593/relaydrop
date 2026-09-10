@@ -735,6 +735,46 @@ a.onedrive-card--sidepanel:hover {
   background: var(--accent-teal);
 }
 
+.reconnect-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+
+.reconnect-banner p { flex: 1 1 180px; margin: 0; font-size: 13px; }
+.reconnect-banner button, .load-older-button {
+  padding: 10px 14px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.load-older-button:disabled { opacity: 0.5; cursor: default; }
+.download-complete, .download-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.download-complete svg { width: 14px; height: 14px; }
+.composer-toggle {
+  width: 100%; min-height: 42px; padding: 10px 14px;
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  background: var(--surface-subtle); color: var(--text);
+  text-align: left; font: inherit; font-size: 13px; cursor: pointer;
+}
+.composer-toggle[aria-expanded="true"] { margin-bottom: 10px; }
+.mobile-access-card > summary { cursor: pointer; list-style: none; }
+.mobile-access-card > summary::-webkit-details-marker { display: none; }
+html[data-extension-view="tab"] #root { max-width: 760px; margin: 0 auto; }
+
 .sidepanel-utility-stack {
   display: grid;
   min-width: 0;
@@ -3326,6 +3366,8 @@ html[data-surface="sidepanel"] #root,
   max-width: 100%;
   overflow: hidden;
   padding: 13px;
+  opacity: 1;
+  animation: none;
 }
 
 .product-shell--sidepanel .feed-card.type-text .text-content {

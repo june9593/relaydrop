@@ -10,6 +10,8 @@ import type {
 export interface RelayDropListOptions {
   cursor?: string;
   limit?: number;
+  cachedItems?: RelayDropItem[];
+  onNewestItem?: (item: RelayDropItem) => void;
 }
 
 export type RelayDropUploadPhase =
@@ -70,7 +72,7 @@ export interface RelayDropRepository {
     input: NewFileItem,
     options?: RelayDropFileUploadOptions
   ): Promise<RelayDropItem>;
-  getFilePresentation(id: string): Promise<RelayDropFilePresentation>;
+  getFilePresentation(id: string, options?: { refresh?: boolean }): Promise<RelayDropFilePresentation>;
   downloadFile(id: string): Promise<Blob>;
   deleteItem(id: string, options?: RelayDropDeleteOptions): Promise<void>;
   dispose?(): void;

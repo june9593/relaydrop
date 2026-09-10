@@ -10,7 +10,8 @@ import { createId, sortFeed, upsertFeedItem } from "../domain/feed";
 import type {
   RelayDropDevice,
   RelayDropFilePresentation,
-  RelayDropItem
+  RelayDropItem,
+  RelayDropPage
 } from "../domain/types";
 import {
   IDLE_FILE_TRANSFER,
@@ -24,6 +25,7 @@ import {
 } from "../repository/RelayDropRepository";
 
 const PAGE_SIZE = 12;
+const PRESENTATION_TTL_MS = 5 * 60 * 1000;
 const systemNow = () => Date.now();
 
 export interface RelayDropDeleteFailure {
@@ -98,6 +100,7 @@ export function useRelayDrop(
   } | null>(null);
   const uploadAbortController = useRef<AbortController | null>(null);
   const presentationCache = useRef(new Map<string, RelayDropFilePresentation>());
+  const presentationTimes = useRef(new Map<string, number>());
   const presentationRequests = useRef(
     new Map<string, Promise<RelayDropFilePresentation>>()
   );
@@ -248,6 +251,7 @@ export function useRelayDrop(
       setError(null);
 
       try {
+        const feedAtStart = feedRef.current;
         const currentDownloadableIds = feedRef.current.items
           .filter((item) => item.type === "file" || item.type === "image")
           .map((item) => item.id);
@@ -274,12 +278,24 @@ export function useRelayDrop(
         };
         refreshLocalDownloadStates(currentDownloadableIds);
 
-        const page = await repository.listItems({ limit: PAGE_SIZE });
+        const page = await repository.listItems({
+          limit: PAGE_SIZE,
+          cachedItems: feedAtStart.items,
+          onNewestItem: (item) => {
+            if (lifecycleVersion.current === requestedLifecycleVersion) {
+              commitFeed(current => commitUpsertedItem(current, item));
+            }
+          }
+        });
         if (lifecycleVersion.current !== requestedLifecycleVersion) return;
+        const items = mergeLatestFeed(feedAtStart.items, page.items, Boolean(page.nextCursor), page.observedRange);
+        const overlaps = page.items.some(item => feedAtStart.items.some(old => old.id === item.id));
         commitFeed({
-          items: sortFeed(page.items),
-          totalItems: page.total,
-          ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+          items,
+          totalItems: Math.max(page.total, items.length),
+          ...(page.nextCursor
+            ? { nextCursor: overlaps ? feedAtStart.nextCursor : page.nextCursor }
+            : {}),
           lastRefreshedAt: new Date(now())
         });
         const refreshedDownloadableIds = page.items
@@ -288,8 +304,18 @@ export function useRelayDrop(
         if (refreshedDownloadableIds.join("|") !== currentDownloadableIds.join("|")) {
           refreshLocalDownloadStates(refreshedDownloadableIds);
         }
-        presentationCache.current.clear();
-        setPresentations({});
+        const changed = new Set(page.items.filter(item => {
+          const previous = feedAtStart.items.find(old => old.id === item.id);
+          return !previous || previous.cloudVersion?.eTag !== item.cloudVersion?.eTag;
+        }).map(item => item.id));
+        for (const id of presentationCache.current.keys()) {
+          if (changed.has(id) || !items.some(item => item.id === id) ||
+            now() - (presentationTimes.current.get(id) ?? 0) >= PRESENTATION_TTL_MS) {
+            presentationCache.current.delete(id);
+            presentationTimes.current.delete(id);
+          }
+        }
+        setPresentations(current => Object.fromEntries(Object.entries(current).filter(([id]) => presentationCache.current.has(id))));
       } catch (caught) {
         if (lifecycleVersion.current !== requestedLifecycleVersion) return;
         setError(
@@ -436,7 +462,7 @@ export function useRelayDrop(
       if (document.visibilityState !== "visible") {
         return;
       }
-      void autoRefreshIfDue(syncPolicy.visibleRefreshIntervalMs);
+      void autoRefreshIfDue(syncPolicy.openCooldownMs);
     };
     const interval = window.setInterval(
       refreshIfDue,
@@ -450,6 +476,7 @@ export function useRelayDrop(
   }, [
     autoRefreshIfDue,
     syncPolicy.refreshWhileOpen,
+    syncPolicy.openCooldownMs,
     syncPolicy.visibleRefreshIntervalMs
   ]);
 
@@ -467,18 +494,20 @@ export function useRelayDrop(
       setIsLoadingMore(true);
       setError(null);
       try {
-        const page = await repository.listItems({ cursor, limit: PAGE_SIZE });
+        const page = await repository.listItems({ cursor, limit: PAGE_SIZE, cachedItems: feedRef.current.items });
         if (lifecycleVersion.current !== requestedLifecycleVersion) return;
         commitFeed((current) => {
           if (current.nextCursor !== cursor) return current;
-          const known = new Set(current.items.map((item) => item.id));
+          const retained = current.items.filter(item => shouldKeepCachedItem(item, page.observedRange));
+          const known = new Set(retained.map((item) => item.id));
+          const items = sortFeed([
+            ...retained,
+            ...page.items.filter((item) => !known.has(item.id))
+          ]);
           return {
             ...current,
-            items: sortFeed([
-              ...current.items,
-              ...page.items.filter((item) => !known.has(item.id))
-            ]),
-            totalItems: page.total,
+            items,
+            totalItems: Math.max(page.total, items.length),
             ...(page.nextCursor
               ? { nextCursor: page.nextCursor }
               : { nextCursor: undefined })
@@ -859,7 +888,7 @@ export function useRelayDrop(
   const loadFilePresentation = useCallback(
     async (id: string) => {
       const cached = presentationCache.current.get(id);
-      if (cached) {
+      if (cached && now() - (presentationTimes.current.get(id) ?? 0) < PRESENTATION_TTL_MS) {
         return cached;
       }
 
@@ -869,9 +898,10 @@ export function useRelayDrop(
       }
 
       const request = repository
-        .getFilePresentation(id)
+        .getFilePresentation(id, { refresh: true })
         .then((presentation) => {
           presentationCache.current.set(id, presentation);
+          presentationTimes.current.set(id, now());
           setPresentations((current) => ({ ...current, [id]: presentation }));
           return presentation;
         })
@@ -879,7 +909,7 @@ export function useRelayDrop(
       presentationRequests.current.set(id, request);
       return request;
     },
-    [repository]
+    [now, repository]
   );
 
   return {
@@ -937,6 +967,31 @@ function commitUpsertedItem(current: FeedState, item: RelayDropItem): FeedState 
     items: result.items,
     totalItems: result.inserted ? current.totalItems + 1 : current.totalItems
   };
+}
+
+export function mergeLatestFeed(
+  previous: RelayDropItem[], newest: RelayDropItem[], hasOlder: boolean,
+  range?: RelayDropPage["observedRange"]
+): RelayDropItem[] {
+  const head = sortFeed(newest);
+  if (!hasOlder) return head;
+  const boundary = head.at(-1);
+  if (!boundary) return previous;
+  const ids = new Set(head.map(item => item.id));
+  const older = previous.filter(item => {
+    if (ids.has(item.id) || sortFeed([boundary, item])[0] !== boundary) return false;
+    return shouldKeepCachedItem(item, range);
+  });
+  return sortFeed([...head, ...older]);
+}
+
+function shouldKeepCachedItem(item: RelayDropItem, range?: RelayDropPage["observedRange"]): boolean {
+  if (!range || range.itemIds.includes(item.id)) return true;
+  if (range.complete) return false;
+  const oldest = range.oldest;
+  if (!oldest) return true;
+  const age = Date.parse(item.serverUpdatedAt ?? item.serverCreatedAt) - Date.parse(oldest.timestamp);
+  return age < 0 || (age === 0 && item.id.localeCompare(oldest.id) > 0);
 }
 
 function markDownloadStateChanged(revisions: Map<string, number>, id: string): void {

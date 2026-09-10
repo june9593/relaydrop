@@ -34,6 +34,7 @@
         <h2>Data stored on this device</h2>
         <p>The extension stores access tokens in session-only extension storage. It may retain an account hint, appearance and refresh settings, a bounded recent-item cache, and browser download identifiers locally. Logging out clears RelayDrop authentication state and the recent-item cache. Appearance and refresh settings, download-tracking records, and downloaded files remain until you clear or delete them.</p>
         <p>The web app stores Microsoft authentication state and your appearance preference in browser storage. It does not persist file bodies or a feed cache in browser storage.</p>
+        <p>In the extension, an expired Microsoft session or a temporary connection failure leaves cached items available until you explicitly log out. The cache may include OneDrive item identifiers and version tags to avoid downloading unchanged details again. It contains no file bodies or temporary download links and does not authorize remote access.</p>
       </section>
 
       <section>

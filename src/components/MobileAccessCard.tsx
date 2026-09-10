@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRightIcon, CheckIcon, CopyIcon, PhoneIcon } from "./Icons";
-import { mobileWebHost } from "../config/mobileAccess";
-
-interface MobileAccessCardProps {
-  webAppUrl?: string;
-}
+import { RELAYDROP_STORE_URL } from "../config/distribution";
 
 type CopyState = "idle" | "copied" | "failed";
 
-export function MobileAccessCard({ webAppUrl }: MobileAccessCardProps) {
+export function MobileAccessCard() {
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const resetTimer = useRef<number | undefined>(undefined);
 
@@ -20,35 +16,31 @@ export function MobileAccessCard({ webAppUrl }: MobileAccessCardProps) {
   );
 
   const copyLink = async () => {
-    if (!webAppUrl) return;
-
-    const copied = await copyText(webAppUrl);
+    const copied = await copyText(RELAYDROP_STORE_URL);
     setCopyState(copied ? "copied" : "failed");
     if (resetTimer.current !== undefined) window.clearTimeout(resetTimer.current);
     resetTimer.current = window.setTimeout(() => setCopyState("idle"), 2400);
   };
 
   return (
-    <section className="mobile-access-card" aria-labelledby="mobile-access-title">
-      <div className="mobile-access-heading">
+    <details className="mobile-access-card">
+      <summary className="mobile-access-heading">
         <span className="mobile-access-icon" aria-hidden="true">
           <PhoneIcon />
         </span>
         <span>
-          <strong id="mobile-access-title">Use RelayDrop on your phone</strong>
-          <small>Mobile browsers use the web app, not this extension.</small>
+          <strong id="mobile-access-title">Use RelayDrop in Edge on Android</strong>
         </span>
-      </div>
+      </summary>
 
       <ol className="mobile-access-steps">
-        <li>Copy the web link to your phone.</li>
+        <li>Open the store link in Edge on Android and install RelayDrop.</li>
         <li>Sign in with the same Microsoft account.</li>
-        <li>Add it to your Home Screen for app-like access.</li>
+        <li>Open RelayDrop from the browser's extensions menu.</li>
       </ol>
 
-      {webAppUrl ? (
         <>
-          <p className="mobile-access-host">{mobileWebHost(webAppUrl)}</p>
+          <p className="mobile-access-host">Microsoft Edge Add-ons</p>
           <div className="mobile-access-actions">
             <button type="button" onClick={copyLink}>
               {copyState === "copied" ? <CheckIcon /> : <CopyIcon />}
@@ -58,18 +50,13 @@ export function MobileAccessCard({ webAppUrl }: MobileAccessCardProps) {
                   ? "Copy failed"
                   : "Copy link"}
             </button>
-            <a href={webAppUrl} target="_blank" rel="noopener noreferrer">
-              Open web app
+            <a href={RELAYDROP_STORE_URL} target="_blank" rel="noopener noreferrer">
+              Open extension store
               <ArrowUpRightIcon />
             </a>
           </div>
         </>
-      ) : (
-        <p className="mobile-access-unavailable">
-          The mobile web address has not been configured for this build.
-        </p>
-      )}
-    </section>
+    </details>
   );
 }
 

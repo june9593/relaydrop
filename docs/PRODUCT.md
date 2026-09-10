@@ -2,7 +2,11 @@
 
 ## Summary
 
-RelayDrop is a personal file assistant that moves text and files between a user's own devices. A user signs in on each device with the same Microsoft account. Sending uploads an item immediately to the user's OneDrive. Receiving remains explicit in the PWA; the Edge side panel can restore a device-local snapshot immediately and perform bounded, user-configurable foreground refreshes.
+RelayDrop moves text and files between a user's own devices through the same
+personal Microsoft account. The extension uses a desktop sidebar and an Android
+extension page. It restores a device-local snapshot before network authentication
+and checks the newest items first. The older web build remains compatible but
+is no longer the advertised mobile workflow. See ADR-0009 for the 0.6.0 decision.
 
 ## Problem
 
@@ -85,7 +89,13 @@ The initial repository optimizes for personal use. The architecture should not p
 ### Receiving
 
 - In the PWA, fetch feed content only when the signed-in user presses Refresh.
-- In the Edge side panel, restore the account-scoped feed snapshot first, then refresh after a two-minute open cooldown and every five minutes while visible when those settings are enabled.
+- Restore the account-scoped feed snapshot first. Check the newest items after
+  a five-second open cooldown and every 30 seconds while visible, with a shared
+  15-second automatic-refresh lease. Older pages load only on request.
+- Show cached items when sign-in expires, with a Reconnect action. Explicit
+  logout clears the account's cached inbox.
+- Keep the composer collapsed initially in the extension so recent items appear
+  in the first viewport; expand it on request and return to the feed after sending.
 - Keep manual Refresh available on every surface.
 - Allow the side-panel user to disable refresh-on-open and refresh-while-open independently.
 - Copy text and links.
@@ -154,9 +164,12 @@ Resolved MVP decisions:
 
 ## Mobile onboarding
 
-- Keep the hosted PWA as the phone experience because typical mobile browsers cannot run the desktop side-panel extension.
-- Let the desktop extension expose a phone setup entry with Copy link, Open web app, and same-account guidance.
-- Keep a locally generated QR code as a possible follow-up; do not send the private or configured URL to a third-party QR service.
+- Use the Edge Add-ons installation link for Android phone setup.
+- Open a bundled extension page when the platform has no side panel, reusing
+  extension-local caching, account binding and download tracking.
+- Target Android Edge 151 for physical-device acceptance. Do not imply iOS
+  support from Android results. Keep the existing web host for compatibility
+  and policy documents without advertising it as the phone workflow.
 
 ## Later product questions
 

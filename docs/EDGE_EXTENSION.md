@@ -1,8 +1,11 @@
 # RelayDrop for Microsoft Edge
 
-RelayDrop includes a native Manifest V3 side-panel build for desktop Microsoft Edge. It reuses the same feed, file preview, and OneDrive App Folder implementation as the web app, while keeping extension authentication separate from the web MSAL cache.
+RelayDrop uses a native Manifest V3 side panel on desktop Microsoft Edge and an
+extension-owned full-page view on Android. Both use the same authentication,
+durable cache, downloads, and OneDrive App Folder implementation.
 
-The extension is currently a sideloadable developer preview for Microsoft Edge 116 or newer. It has not been submitted to Microsoft Edge Add-ons.
+Version 0.5.3 is published in Edge Add-ons. Version 0.6.0 is in development;
+Android Edge 151 device acceptance is still required before publishing it.
 
 ## What the extension does
 
@@ -17,9 +20,12 @@ The extension is currently a sideloadable developer preview for Microsoft Edge 1
 - Shows RelayDrop App Folder usage and opens that folder in OneDrive for management.
 - Saves downloads under `Downloads/RelayDrop`, reconciles their device-local status, and exposes Open local, Show in Folder, and Delete local actions.
 - Offers a persistent Light/Dark appearance setting without showing browser-specific branding in the product title.
-- Shows phone setup guidance with the configured hosted-PWA link, Copy link, and Open web app actions.
+- Shows Android setup guidance with the extension-store link and same-account instructions.
 
-The mobile endpoint remains the hosted PWA. The extension is a desktop companion, not a replacement for the phone experience.
+Android does not support `sidePanel`. The action opens an extension URL in a
+normal tab instead, retaining extension storage and download APIs. It reuses
+that tab when possible. The hosted web app is no longer the recommended phone
+entry point. No extra browsing or host permissions are requested.
 
 ## Build
 
@@ -35,7 +41,9 @@ The unpacked extension is written to:
 
     dist-extension/
 
-Set `VITE_RELAYDROP_WEB_URL` to the public HTTPS PWA address to enable the phone setup card. The extension build does not include the PWA service worker and does not load executable code from the network. The build stops immediately when `VITE_MICROSOFT_CLIENT_ID` is missing, so an unusable sign-in package is not produced accidentally.
+The phone setup card uses the published extension-store URL; a hosted mobile
+URL is no longer configured. The extension includes no PWA service worker or
+remote executable code. The build requires `VITE_MICROSOFT_CLIENT_ID`.
 
 ## Load the developer build in Edge
 
@@ -87,7 +95,11 @@ If Microsoft reports that `redirect_uri` is invalid, read the ID from the reject
 ## Authentication behavior
 
 - Interactive login uses `chrome.identity.launchWebAuthFlow`.
-- Startup and token renewal first try a non-interactive Microsoft web-session flow.
+- Startup restores a previously connected account's local inbox without waiting
+  for Microsoft. This local account hint grants no network access. Token renewal
+  uses a non-interactive Microsoft web-session flow before each needed remote request.
+- A failed renewal keeps cached items visible with a Reconnect action. Explicit
+  Log out still clears the account's cache and prevents automatic reconnect.
 - Before creating a session, the extension verifies the ID token's RS256 signature through Microsoft consumers OIDC discovery and JWKS. Discovery, issuer, and key URLs are restricted to HTTPS on `login.microsoftonline.com`; the fixed personal-account tenant, nonce, audience, authorized party, expiry, and account-continuity checks remain mandatory. An unknown `kid` triggers one forced JWKS refresh for key rollover.
 - Sessions created by older builds without the verification marker are silently renewed instead of reused.
 - Access tokens are kept in `chrome.storage.session`, not synchronized between devices.
@@ -112,10 +124,17 @@ The side panel keeps a versioned snapshot for each Microsoft account in device-l
 
 The snapshot contains the user-visible data required to rebuild feed cards, including note and link text and file display metadata. It does not contain Microsoft tokens, file bodies, thumbnail bytes, Blob URLs, preauthenticated OneDrive URLs, or temporary preview/download URLs. The snapshot and shared refresh state are removed when that account logs out. A cache-generation tombstone prevents in-flight work or another open panel from writing the logged-out snapshot back afterward. Logout independently attempts tombstone rotation and physical cache removal so one storage failure does not leave readable cached content behind.
 
+Version 0.6.0 optionally stores OneDrive item IDs, version tags and last-modified
+time alongside the existing snapshot fields. Old snapshots remain readable.
+The newest directory page is fetched first; unchanged item bodies are reused.
+Refresh preserves older cached cards and reconciles deletions in its observed
+range. Load older requests additional history. Counts in the UI describe shown
+items instead of forcing a full-folder scan. See ADR-0009.
+
 Default foreground behavior:
 
-- On open, refresh only when the last successful refresh is at least two minutes old.
-- While the side panel is visible, check every five minutes and refresh only when due.
+- On open, check new items after a five-second cooldown, subject to the shared lease.
+- While visible, check every 30 seconds. Returning to the page uses the open cooldown.
 - Deduplicate overlapping refreshes, use a 15-second cross-panel lease while a request is in flight, and share the last successful refresh time across open panels.
 - Let a failed or interrupted lease expire quickly instead of suppressing retries for the full open cooldown.
 - Never poll while the panel is hidden or closed.

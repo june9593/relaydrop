@@ -14,7 +14,6 @@ jobs:
       VITE_RELAYDROP_MODE: onedrive
       VITE_MICROSOFT_CLIENT_ID: ${{ vars.VITE_MICROSOFT_CLIENT_ID || '00000000-0000-4000-8000-000000000000' }}
       VITE_MICROSOFT_AUTHORITY: https://login.microsoftonline.com/consumers
-      VITE_RELAYDROP_WEB_URL: https://relaydrop.example
 
     steps:
       - name: Check out repository

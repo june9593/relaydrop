@@ -30,7 +30,9 @@ interface RelayDropItemBase {
   id: string;
   createdAt: string;
   serverCreatedAt: string;
+  serverUpdatedAt?: string;
   source: RelayDropDevice;
+  cloudVersion?: { id: string; eTag: string };
 }
 
 export interface RelayDropTextItem extends RelayDropItemBase {
@@ -64,6 +66,11 @@ export interface RelayDropPage {
   items: RelayDropItem[];
   nextCursor?: string;
   total: number;
+  observedRange?: {
+    itemIds: string[];
+    oldest?: { id: string; timestamp: string };
+    complete: boolean;
+  };
 }
 
 export interface RelayDropStorageInfo {

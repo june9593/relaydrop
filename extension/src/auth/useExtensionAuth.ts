@@ -8,13 +8,17 @@ export function useExtensionAuth(service: ExtensionAuthService) {
   const [account, setAccount] = useState<ExtensionAccount | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [requiresReconnect, setRequiresReconnect] = useState(false);
   const storageRevision = useRef(0);
 
   useEffect(() => {
     let active = true;
     const unsubscribe = service.subscribe((nextAccount) => {
       storageRevision.current += 1;
-      if (active) setAccount(nextAccount);
+      if (active) {
+        setAccount(nextAccount);
+        setRequiresReconnect(service.requiresReconnect);
+      }
     });
     const initialRevision = storageRevision.current;
 
@@ -23,6 +27,7 @@ export function useExtensionAuth(service: ExtensionAuthService) {
       .then((nextAccount) => {
         if (active && storageRevision.current === initialRevision) {
           setAccount(nextAccount);
+          setRequiresReconnect(service.requiresReconnect);
         }
       })
       .catch(() => {
@@ -58,5 +63,5 @@ export function useExtensionAuth(service: ExtensionAuthService) {
     }
   }, [service]);
 
-  return { account, isInitializing, error, signIn, signOut };
+  return { account, isInitializing, error, requiresReconnect, signIn, signOut };
 }

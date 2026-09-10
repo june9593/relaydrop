@@ -11,6 +11,73 @@ import { OneDriveRelayDropRepository } from "./OneDriveRelayDropRepository";
 import { RelayDropDeleteError } from "./RelayDropRepository";
 
 describe("OneDriveRelayDropRepository", () => {
+  it("retries folder initialization after a transient sign-in or network failure", async () => {
+    const graph = createFakeGraph();
+    graph.json.mockRejectedValueOnce(new Error("temporarily offline"));
+    const repository = new OneDriveRelayDropRepository(graph.client);
+    await expect(repository.listItems()).rejects.toThrow("temporarily offline");
+    await expect(repository.listItems()).resolves.toMatchObject({ items: [] });
+  });
+
+  it("falls back to a bounded full scan when OneDrive rejects server ordering", async () => {
+    const graph = createFakeGraph();
+    const base = graph.json.getMockImplementation()!;
+    graph.json.mockImplementation(async (path, init) => {
+      if (path.includes("$orderby=")) throw new GraphApiError(400, "invalidRequest", "Order unsupported");
+      return base(path, init);
+    });
+    await expect(new OneDriveRelayDropRepository(graph.client).listItems()).resolves.toMatchObject({ items: [] });
+    const directories = graph.json.mock.calls.map(([path]) => path).filter(path => path.includes("feed-folder/children"));
+    expect(directories).toHaveLength(3);
+    expect(directories[1]).toContain("lastModifiedDateTime%20desc");
+    expect(new URL(directories[1], "https://graph.microsoft.com").searchParams.get("$orderby")).toBe("lastModifiedDateTime desc");
+    expect(directories[2]).not.toContain("$orderby");
+  });
+
+  it("announces the newest changed item before a slower older descriptor finishes", async () => {
+    const graph = createFakeGraph();
+    for (let index = 0; index < 2; index++) {
+      const id = "00000000-0000-4000-8000-" + String(index).padStart(12, "0");
+      const createdAt = new Date(Date.UTC(2026, 8, 10 - index)).toISOString();
+      graph.feedItems.push({ id: "drive-" + index, name: id + ".json", createdDateTime: createdAt });
+      graph.descriptorContent.set("drive-" + index, serializeDescriptor({ schemaVersion: 1, id, type: "text", text: "Item " + index, source: "phone", createdAt }));
+    }
+    const baseText = graph.text.getMockImplementation()!;
+    let finishOlder!: (value: string) => void;
+    graph.text.mockImplementation(path => path.includes("drive-1/")
+      ? new Promise(resolve => { finishOlder = resolve; }) : baseText(path));
+    const onNewestItem = vi.fn();
+    let finished = false;
+    const pending = new OneDriveRelayDropRepository(graph.client).listItems({ onNewestItem }).then(page => { finished = true; return page; });
+    await vi.waitFor(() => expect(onNewestItem).toHaveBeenCalledWith(expect.objectContaining({ text: "Item 0" })));
+    expect(finished).toBe(false);
+    finishOlder(graph.descriptorContent.get("drive-1")!);
+    await expect(pending).resolves.toMatchObject({ items: [{ text: "Item 0" }, { text: "Item 1" }] });
+  });
+
+  it("returns the newest page without waiting for historical metadata pages", async () => {
+    const graph = createFakeGraph();
+    const base = graph.json.getMockImplementation()!;
+    const id = "00000000-0000-4000-8000-000000000001";
+    const nextLink = "https://graph.microsoft.com/v1.0/me/drive/items/feed-folder/children?$skiptoken=older";
+    graph.descriptorContent.set("newest-descriptor", serializeDescriptor({
+      schemaVersion: 1, id, type: "text", text: "Just arrived", source: "phone",
+      createdAt: "2026-09-10T00:00:00.000Z"
+    }));
+    graph.json.mockImplementation(async (path, init) => {
+      if (path === nextLink) throw new Error("History must not block the newest item");
+      if (path.includes("feed-folder/children")) return {
+        value: [{ id: "newest-descriptor", name: id + ".json", eTag: "v1", createdDateTime: "2026-09-10T00:00:00.000Z" }],
+        "@odata.nextLink": nextLink
+      };
+      return base(path, init);
+    });
+    const page = await new OneDriveRelayDropRepository(graph.client).listItems({ limit: 1 });
+    expect(page.items[0]).toMatchObject({ text: "Just arrived" });
+    expect(page.nextCursor).toBeTruthy();
+    expect(graph.json).not.toHaveBeenCalledWith(nextLink);
+  });
+
   it("reports the app-folder size and caches it for a short TTL", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-06T00:00:00.000Z"));

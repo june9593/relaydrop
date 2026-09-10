@@ -17,6 +17,20 @@ const item: RelayDropFileItem = {
 };
 
 describe("FeedCard local downloads", () => {
+  it("shows downloaded status on an image without unsupported mobile file-manager actions", () => {
+    const html = renderToStaticMarkup(<FeedCard
+      item={{ ...item, type: "image" }} index={0} isDeleting={false}
+      isDownloading={false} isDeletingDownloaded={false} isCompactSurface
+      downloadState={{ itemId: item.id, fileName: item.file.name, status: "complete" }}
+      downloadActions={{ open: false, show: false, deleteLocal: false }}
+      onLoadPresentation={vi.fn()} onOpen={vi.fn()} onDownload={vi.fn()}
+      onOpenDownloaded={vi.fn()} onShowDownloaded={vi.fn()} onDeleteDownloaded={vi.fn()} onDelete={vi.fn()}
+    />);
+    expect(html).toContain("Downloaded");
+    expect(html).toContain("In Edge downloads");
+    expect(html).not.toContain("Delete local");
+    expect(html).not.toContain("Open local");
+  });
   it("offers local deletion only while the downloaded file exists", () => {
     const html = renderToStaticMarkup(
       <FeedCard

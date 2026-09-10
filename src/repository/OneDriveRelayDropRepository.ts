@@ -38,6 +38,7 @@ interface GraphDriveItem {
   name: string;
   size?: number;
   createdDateTime?: string;
+  lastModifiedDateTime?: string;
   eTag?: string;
   folder?: { childCount?: number };
   file?: { mimeType?: string };
@@ -81,6 +82,12 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
     expiresAt: number;
   };
   private feedIndex: GraphDriveItem[] | null = null;
+  private feedNextLink?: string;
+  private feedListingPages = new Set<string>();
+  private feedListedCount = 0;
+  private orderedFeedSupported = true;
+  private secondaryOrderingSupported = true;
+  private skippedDescriptors = new Set<string>();
   private readonly descriptorItems = new Map<string, GraphDriveItem>();
   private readonly fileItems = new Map<string, string>();
   private readonly descriptorCache = new Map<
@@ -132,38 +139,66 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
   }
 
   async listItems(options: RelayDropListOptions = {}): Promise<RelayDropPage> {
+    const lifecycle = this.lifecycleVersion;
     const folders = await this.folders();
+    this.assertActive(lifecycle);
     if (!options.cursor || !this.feedIndex) {
-      this.feedIndex = sortDriveItems(
-        (await this.listAllChildren(folders.feed.id)).filter((item) =>
-          item.name.endsWith(".json")
-        )
-      );
-      this.reconcileCaches(this.feedIndex);
-      this.clearPresentationCache();
+      this.feedIndex = [];
+      this.feedListingPages = new Set();
+      this.feedListedCount = 0;
+      this.skippedDescriptors.clear();
+      this.feedNextLink = this.feedChildrenPath(folders.feed.id);
+      await this.readNextFeedPage(lifecycle);
     }
 
-    const feedIndex = this.feedIndex;
     const limit = Math.max(1, Math.min(options.limit ?? 12, 50));
-    const start = options.cursor ? findCursorStart(feedIndex, options.cursor) : 0;
-    const driveItems = feedIndex.slice(start, start + limit);
+    const known = new Map((options.cachedItems ?? []).map(item => [item.id + ".json", item]));
+    // Re-seek semantic cursors after a restart. Older Graph pages are requested
+    // only when the user asks for history, never before the newest page renders.
+    let start = options.cursor ? findCursorStart(this.feedIndex!, options.cursor) : 0;
+    const candidates = () => (options.cursor && options.cachedItems
+      ? this.feedIndex!.filter(item => !known.has(item.name))
+      : this.feedIndex!.slice(start)
+    ).filter(item => !this.skippedDescriptors.has(item.id));
+    while (this.feedNextLink && options.cursor && candidates().length < limit) {
+      await this.readNextFeedPage(lifecycle);
+      start = findCursorStart(this.feedIndex!, options.cursor);
+    }
+    const feedIndex = this.feedIndex!;
+    const remaining = candidates();
+    const driveItems = remaining.slice(0, limit);
     const loaded = await mapWithConcurrency(driveItems, 6, async (driveItem) => {
       try {
+        const cached = known.get(driveItem.name);
+        if (driveItem.eTag && cached?.cloudVersion?.id === driveItem.id &&
+          cached.cloudVersion.eTag === driveItem.eTag &&
+          cached.serverCreatedAt === driveItem.createdDateTime) {
+          const restored = { ...cached,
+            ...(driveItem.lastModifiedDateTime ? { serverUpdatedAt: driveItem.lastModifiedDateTime } : {}) };
+          if (!options.cursor && driveItem === driveItems[0]) options.onNewestItem?.(restored);
+          return restored;
+        }
         const descriptor = await this.loadCachedDescriptor(driveItem);
+        this.assertActive(lifecycle);
         this.descriptorItems.set(descriptor.id, driveItem);
         if (descriptor.file) {
           this.fileItems.set(descriptor.id, descriptor.file.driveItemId);
         }
-        return descriptorToItem(
+        const item = descriptorToItem(
           descriptor,
           driveItem.createdDateTime ?? descriptor.createdAt
         );
+        if (driveItem.eTag) item.cloudVersion = { id: driveItem.id, eTag: driveItem.eTag };
+        if (driveItem.lastModifiedDateTime) item.serverUpdatedAt = driveItem.lastModifiedDateTime;
+        if (!options.cursor && driveItem === driveItems[0]) options.onNewestItem?.(item);
+        return item;
       } catch (error) {
         if (
           error instanceof RelayDropValidationError ||
           error instanceof SyntaxError ||
           (error instanceof GraphApiError && error.status === 404)
         ) {
+          this.skippedDescriptors.add(driveItem.id);
           return null;
         }
         throw error;
@@ -172,11 +207,20 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
 
     const items = sortFeed(loaded.filter((item): item is RelayDropItem => item !== null));
     const lastDriveItem = driveItems.at(-1);
+    const oldestObserved = feedIndex.at(-1);
     return {
       items,
-      total: feedIndex.length,
+      total: Math.max(feedIndex.length + (this.feedNextLink ? 1 : 0),
+        this.feedNextLink ? options.cachedItems?.length ?? 0 : 0),
+      observedRange: {
+        itemIds: feedIndex.map(item => item.name.slice(0, -5)),
+        ...(oldestObserved?.createdDateTime ? { oldest: {
+          id: oldestObserved.name.slice(0, -5), timestamp: oldestObserved.lastModifiedDateTime ?? oldestObserved.createdDateTime
+        } } : {}),
+        complete: !this.feedNextLink
+      },
       nextCursor:
-        start + driveItems.length < feedIndex.length && lastDriveItem
+        (driveItems.length < remaining.length || this.feedNextLink) && lastDriveItem
           ? cursorFor(lastDriveItem)
           : undefined
     };
@@ -250,8 +294,13 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
     }
   }
 
-  async getFilePresentation(id: string): Promise<RelayDropFilePresentation> {
+  async getFilePresentation(id: string, options: { refresh?: boolean } = {}): Promise<RelayDropFilePresentation> {
     const lifecycleVersion = this.lifecycleVersion;
+    if (options.refresh) {
+      const previous = this.presentationCache.get(id);
+      if (previous?.thumbnailUrl?.startsWith("blob:")) URL.revokeObjectURL(previous.thumbnailUrl);
+      this.presentationCache.delete(id);
+    }
     const cached = this.presentationCache.get(id);
     if (cached?.thumbnailUrl || (cached && !canHaveThumbnail(cached.kind))) {
       return cached;
@@ -427,6 +476,9 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
     this.clearPresentationCache();
     this.folderPromise = undefined;
     this.feedIndex = null;
+    this.feedNextLink = undefined;
+    this.feedListingPages.clear();
+    this.skippedDescriptors.clear();
     this.descriptorItems.clear();
     this.fileItems.clear();
     this.descriptorCache.clear();
@@ -446,7 +498,11 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
 
   private folders(): Promise<FolderSet> {
     if (!this.folderPromise) {
-      this.folderPromise = this.initializeFolders();
+      const request = this.initializeFolders().catch(error => {
+        if (this.folderPromise === request) this.folderPromise = undefined;
+        throw error;
+      });
+      this.folderPromise = request;
     }
     return this.folderPromise;
   }
@@ -492,35 +548,61 @@ export class OneDriveRelayDropRepository implements RelayDropRepository {
     }
   }
 
-  private async listAllChildren(parentId: string): Promise<GraphDriveItem[]> {
-    const results: GraphDriveItem[] = [];
-    const visitedPages = new Set<string>();
-    let path: string | undefined =
+  private feedChildrenPath(parentId: string): string {
+    return (
       "/me/drive/items/" +
       encodeURIComponent(parentId) +
-      "/children?$select=id,name,size,createdDateTime,eTag,file,folder&$top=200";
+      "/children?$select=id,name,size,createdDateTime,lastModifiedDateTime,eTag,file,folder&$top=50" +
+      (this.orderedFeedSupported ? "&$orderby=lastModifiedDateTime%20desc" +
+        (this.secondaryOrderingSupported ? ",name%20asc" : "") : "")
+    );
+  }
 
-    while (path) {
-      if (visitedPages.has(path)) {
+  private async readNextFeedPage(lifecycle: number): Promise<void> {
+    do {
+      const path = this.feedNextLink;
+      if (!path) return;
+      if (this.feedListingPages.has(path)) {
         throw new RelayDropValidationError("Microsoft Graph returned a pagination loop.");
       }
-      if (visitedPages.size >= MAX_GRAPH_LIST_PAGES) {
+      if (this.feedListingPages.size >= MAX_GRAPH_LIST_PAGES) {
         throw new RelayDropValidationError("Microsoft Graph returned too many pages.");
       }
-      visitedPages.add(path);
-      const page: GraphCollection<GraphDriveItem> =
-        await this.graph.json<GraphCollection<GraphDriveItem>>(path);
+      let page: GraphCollection<GraphDriveItem>;
+      try {
+        page = await this.graph.json<GraphCollection<GraphDriveItem>>(path);
+      } catch (error) {
+        if (this.orderedFeedSupported && this.feedListingPages.size === 0 &&
+          error instanceof GraphApiError && error.status === 400) {
+          // Some OneDrive deployments reject ordering. Preserve correctness on
+          // those servers with the bounded legacy scan, rather than miss new items.
+          if (this.secondaryOrderingSupported) {
+            this.secondaryOrderingSupported = false;
+            this.feedNextLink = path.replace(",name%20asc", "");
+          } else {
+            this.orderedFeedSupported = false;
+            this.feedNextLink = path.replace(/&\$orderby=[^&]*/, "");
+          }
+          continue;
+        }
+        throw error;
+      }
+      this.assertActive(lifecycle);
       if (!Array.isArray(page.value)) {
         throw new RelayDropValidationError("Microsoft Graph returned an invalid item page.");
       }
-      if (results.length + page.value.length > MAX_GRAPH_LIST_ITEMS) {
+      this.feedListingPages.add(path);
+      this.feedListedCount += page.value.length;
+      if (this.feedListedCount > MAX_GRAPH_LIST_ITEMS) {
         throw new RelayDropValidationError("RelayDrop contains too many items to load safely.");
       }
-      results.push(...page.value);
-      path = page["@odata.nextLink"];
-    }
-
-    return results;
+      this.feedIndex = sortDriveItems([...this.feedIndex ?? [], ...page.value.filter(item => item.name.endsWith(".json"))]);
+      this.feedNextLink = page["@odata.nextLink"];
+      if (this.feedNextLink && this.feedListingPages.has(this.feedNextLink)) {
+        throw new RelayDropValidationError("Microsoft Graph returned a pagination loop.");
+      }
+      if (!this.feedNextLink) this.reconcileCaches(this.feedIndex);
+    } while (this.feedNextLink && (!this.orderedFeedSupported || !this.feedIndex?.length));
   }
 
   private async getItemByPath(
@@ -784,14 +866,14 @@ function sortDriveItems(items: GraphDriveItem[]): GraphDriveItem[] {
 }
 
 function compareDriveItems(left: GraphDriveItem, right: GraphDriveItem): number {
-  const dateComparison = (right.createdDateTime ?? "").localeCompare(
-    left.createdDateTime ?? ""
+  const dateComparison = (right.lastModifiedDateTime ?? right.createdDateTime ?? "").localeCompare(
+    left.lastModifiedDateTime ?? left.createdDateTime ?? ""
   );
   return dateComparison || left.name.localeCompare(right.name);
 }
 
 function cursorFor(item: GraphDriveItem): string {
-  return JSON.stringify([item.createdDateTime ?? "", item.name]);
+  return JSON.stringify([item.lastModifiedDateTime ?? item.createdDateTime ?? "", item.name]);
 }
 
 function findCursorStart(items: GraphDriveItem[], cursor: string): number {
@@ -811,7 +893,7 @@ function findCursorStart(items: GraphDriveItem[], cursor: string): number {
       createdDateTime: parsed[0],
       name: parsed[1]
     };
-    const exactIndex = items.findIndex((item) => cursorFor(item) === cursor);
+    const exactIndex = items.findIndex((item) => item.name === parsed[1]);
     if (exactIndex >= 0) {
       return exactIndex + 1;
     }
