@@ -43,7 +43,12 @@ it("reopens the real extension UI offline after session storage is lost and stil
   try {
     await act(async () => root.render(<StrictMode><ExtensionRoot /></StrictMode>));
     expect(host.textContent).toContain("Still here after two days");
+    expect(host.querySelector<HTMLElement>("#relay-composer")?.hidden).toBe(false);
+    expect(host.querySelector('[aria-controls="relay-composer"]')?.getAttribute("aria-expanded")).toBe("true");
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-controls="relay-composer"]')!.click());
     expect(host.querySelector<HTMLElement>("#relay-composer")?.hidden).toBe(true);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-controls="relay-composer"]')!.click());
+    expect(host.querySelector<HTMLElement>("#relay-composer")?.hidden).toBe(false);
     await act(async () => {
       await vi.waitFor(() => expect(network).toHaveBeenCalled());
     });

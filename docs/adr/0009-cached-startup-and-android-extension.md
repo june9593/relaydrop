@@ -1,6 +1,8 @@
 # ADR-0009: Cached startup, newest-first refresh, and Android extension UI
 
 - Status: Accepted for 0.6.0; physical Android acceptance pending
+- Android launch decision superseded by [ADR-0010](0010-android-native-popup.md)
+  after the September 19, 2026 physical-device failure report.
 - Date: 2026-09-10
 - Supersedes: the two-minute/five-minute intervals and mobile-distribution
   assumptions in ADR-0005 and ADR-0006

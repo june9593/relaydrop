@@ -8,25 +8,26 @@ RelayDrop is free and open source under the MIT license.
 Sign in with the same personal Microsoft account on your devices, send an item,
 and retrieve it on the other device. RelayDrop uses your OneDrive App Folder,
 with no dedicated synchronization server. The desktop extension uses Edge's
-sidebar; the upcoming Android extension opens its own full-page inbox. Mobile
+sidebar; the Android extension opens its inbox in Edge's native extension popup. Mobile
 setup points to the extension store. The existing web build remains available
 for compatibility and local development.
 
 ## Status
 
-Version **0.6.0** adds:
-persistent cached startup even when Microsoft sign-in expires, newest-first
-refresh, and an Android extension entry point. The owner authorized publication
-before physical-device acceptance and will test on Android Edge 151 after the
-store update. Automated checks do not replace that device check. Store rollout
-depends on Microsoft's review; use the store page to check availability.
+Version **0.6.1** is a release candidate. It keeps the send form expanded by
+default and fixes Android launch by using a native popup. On a physical Android
+device running Edge 153, the installed 0.6.0 exposed sidePanel despite lacking a
+usable sidebar; switching that installation to the popup restored menu launch.
+See the [validation record](release/edge-store/VALIDATION-0.6.1.md) for the
+distinction between that device check and testing the complete candidate package.
+Store rollout depends on Microsoft's review; use the store page for availability.
 
 Developer packages are available from [Releases](https://github.com/june9593/relaydrop/releases).
 Follow the [sideload instructions](docs/EDGE_EXTENSION.md) when installing a ZIP.
 
 ## MVP
 
-- Desktop side panel and a full-page extension view for Android
+- Desktop side panel and a native extension popup for Android
 - Microsoft account sign-in
 - Sign-in persistence across tabs and browser restarts, with opportunistic Microsoft web SSO
 - One private feed per signed-in user
@@ -75,6 +76,7 @@ The side panel reports the size of RelayDrop's own App Folder and opens that fol
 - [RelayDrop design adaptation](docs/DESIGN.md)
 - [Microsoft account and Azure setup](docs/AZURE_SETUP.md)
 - [Microsoft Edge side-panel extension](docs/EDGE_EXTENSION.md)
+- [Android USB debugging on macOS](docs/ANDROID_DEBUGGING.md)
 - [Security](docs/SECURITY.md)
 - [Privacy policy](PRIVACY.md)
 - [Support and private security reporting](SUPPORT.md)
@@ -95,6 +97,7 @@ The side panel reports the size of RelayDrop's own App Folder and opens that fol
 - [ADR-0006: Cache Edge feed snapshots and use bounded foreground refresh](docs/adr/0006-edge-feed-cache-and-refresh.md)
 - [ADR-0007: Show App Folder usage without broadening OneDrive access](docs/adr/0007-app-folder-usage-without-files-read.md)
 - [ADR-0008: Use the browser Downloads API for device-local file state](docs/adr/0008-browser-downloads-api.md)
+- [ADR-0010: Use a native popup on Android](docs/adr/0010-android-native-popup.md)
 
 ## Run locally
 

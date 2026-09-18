@@ -1,12 +1,26 @@
-async function configureExtension() {
-  const tasks = [];
-  // Android supports extension tabs, identity, storage and downloads, but has
-  // no sidePanel API. Each optional setup must fail independently.
-  if (chrome.sidePanel?.setPanelBehavior) {
-    tasks.push(Promise.resolve().then(() =>
-      chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-    ));
+let useDesktopSidePanel = false;
+
+async function configureLaunchSurface() {
+  // Keep a declarative popup available without waiting for this worker. API
+  // presence alone does not mean a platform implements a visible side panel.
+  useDesktopSidePanel = false;
+  const popup = chrome.runtime.getManifest().action.default_popup;
+  await chrome.action.setPopup({ popup });
+  const { os } = await chrome.runtime.getPlatformInfo();
+  if (["win", "mac", "linux", "cros", "openbsd"].includes(os) &&
+      chrome.sidePanel?.setPanelBehavior && chrome.sidePanel?.open) {
+    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    await chrome.action.setPopup({ popup: "" });
+    useDesktopSidePanel = true;
+  } else if (chrome.sidePanel?.setPanelBehavior) {
+    // Clear 0.6.0's unconditional side-panel action override on Android.
+    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
   }
+}
+
+async function configureExtension() {
+  const tasks = [configureLaunchSurface()];
+  // Optional setup failures must not block trusted storage or the native popup.
   for (const area of [chrome.storage.local, chrome.storage.session]) {
     if (area?.setAccessLevel) {
       tasks.push(Promise.resolve().then(() =>
@@ -47,7 +61,7 @@ async function openExtensionTab() {
 }
 
 chrome.action.onClicked.addListener((tab) => {
-  if (chrome.sidePanel?.open && Number.isInteger(tab.id)) {
+  if (useDesktopSidePanel && Number.isInteger(tab?.id)) {
     // Invoke inside the user gesture, without an awaited platform lookup.
     try {
       return Promise.resolve(chrome.sidePanel.open({ tabId: tab.id })).catch(() => openExtensionTab());

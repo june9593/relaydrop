@@ -1,7 +1,8 @@
-# Certification notes — 0.6.0
+# Certification notes — 0.6.1 draft
 
-Automated and simulated-platform checks passed. Owner testing on physical
-Android Edge 151 is planned after store availability and is not claimed here.
+Automated checks passed. The corrected popup entry configuration was verified
+on physical Android Edge 153 using the installed 0.6.0. Complete-package device
+acceptance of this candidate is still pending and is not claimed here.
 
 RelayDrop is an independent personal file and note transfer utility. All users
 have the same features. There are no paid, hidden, or organization-only features.
@@ -16,8 +17,9 @@ ID before submitting. The developer sideload ID alone is not sufficient proof.
 The expected form is `https://<extension-id>.chromiumapp.org/oauth2`.
 
 The store package omits the developer-only manifest key and includes required
-third-party license notices. Version 0.6.0 changes startup, paging and Android UI;
-the older 0.5.3 acceptance does not substitute for validating this package.
+third-party license notices. Version 0.6.1 fixes Android menu launch and keeps
+the send form expanded. Earlier-version acceptance does not substitute for
+validating this package.
 
 The public installation entry is Edge Add-ons. Keep the existing privacy and
 support URLs in Partner Center. The mobile workflow uses the extension.
@@ -30,7 +32,7 @@ support URLs in Partner Center. The mobile workflow uses the extension.
 2. Send a harmless note, such as “RelayDrop certification test”. Select Refresh
    if needed. Reopen the panel and confirm the note is present.
 3. Open the extension on another desktop or Android device, sign in with the
-   same account, and choose Refresh. Android opens a full-page extension view.
+   same account, and choose Refresh. Android opens a native extension popup.
 4. In the extension, choose or paste a small PNG or text file. Check the image
    preview where applicable, then send it. Confirm retrieval in the other extension.
 5. Download that file in the extension. Inspect the local actions and use Show
@@ -53,7 +55,7 @@ support URLs in Partner Center. The mobile workflow uses the extension.
 - Cached extension entries may appear before the next cloud refresh. By default,
   opening checks after a five-second cooldown, subject to a shared 15-second
   lease. Visible pages check every 30 seconds. Closed pages do not sync.
-- The interface is in English. Android uses a bundled extension page and shares
+- The interface is in English. Android uses a bundled native popup and shares
   the browser download-tracking path. Unsupported local file actions are hidden.
 - The extension has no website content script and needs no access to arbitrary
   local `file://` pages.

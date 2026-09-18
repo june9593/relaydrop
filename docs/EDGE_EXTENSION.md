@@ -1,15 +1,17 @@
 # RelayDrop for Microsoft Edge
 
 RelayDrop uses a native Manifest V3 side panel on desktop Microsoft Edge and an
-extension-owned full-page view on Android. Both use the same authentication,
+native extension popup on Android. Both use the same authentication,
 durable cache, downloads, and OneDrive App Folder implementation.
 
-Version 0.6.0 is authorized for publication. Android Edge 151 device acceptance
-will follow the store update at the owner's request and is not yet recorded.
+Version 0.6.1 is a release candidate. Android Edge 153 menu launch was verified
+by temporarily applying its popup configuration to the installed 0.6.0.
+The complete candidate package still needs device acceptance.
 
 ## What the extension does
 
-- Opens RelayDrop in the Edge sidebar from the toolbar action.
+- Opens RelayDrop in the desktop sidebar or Android extension popup.
+- Keeps the note/file composer expanded on open and after sending; users can collapse it manually.
 - Signs in to a personal Microsoft account through Microsoft identity.
 - Reads and writes only RelayDrop's OneDrive App Folder.
 - Sends notes and selected files from the desktop browser.
@@ -22,10 +24,15 @@ will follow the store update at the owner's request and is not yet recorded.
 - Offers a persistent Light/Dark appearance setting without showing browser-specific branding in the product title.
 - Shows Android setup guidance with the extension-store link and same-account instructions.
 
-Android does not support `sidePanel`. The action opens an extension URL in a
-normal tab instead, retaining extension storage and download APIs. It reuses
-that tab when possible. The hosted web app is no longer the recommended phone
-entry point. No extra browsing or host permissions are requested.
+Android Edge can expose `chrome.sidePanel` even without a usable sidebar. The
+manifest therefore declares a bundled `action.default_popup`, and the worker
+enables side-panel action behavior only after confirming a desktop OS and
+successful setup. Android explicitly clears the old side-panel action override.
+The popup works without an onClicked event or a running worker. A normal
+extension tab remains a fallback for a failed desktop side-panel open, not the
+Android menu entry point. No new permissions are requested.
+
+See [Android debugging](ANDROID_DEBUGGING.md) for USB inspection from a Mac.
 
 ## Build
 

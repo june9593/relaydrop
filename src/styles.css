@@ -3208,6 +3208,22 @@ html[data-surface="sidepanel"] #root,
   overflow-x: clip;
 }
 
+/* Edge owns the Android sheet. Supply a useful desktop fallback size while
+   allowing the popup to fit a smaller phone viewport. */
+html[data-extension-view="popup"],
+html[data-extension-view="popup"] body {
+  width: 380px;
+  max-width: 100vw;
+  min-height: min(560px, 100dvh);
+}
+
+@media (pointer: coarse) {
+  html[data-extension-view="popup"],
+  html[data-extension-view="popup"] body {
+    width: 100vw;
+  }
+}
+
 .product-shell--sidepanel .app-header {
   min-height: 56px;
   padding: 0 13px;

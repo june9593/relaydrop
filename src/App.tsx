@@ -74,7 +74,7 @@ export default function App({
   );
   const relay = useRelayDrop(repository, source, relayOptions);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [composerOpen, setComposerOpen] = useState(surface !== "sidepanel");
+  const [composerOpen, setComposerOpen] = useState(true);
   const storageRefreshKey = `${relay.items.length}:${relay.items[0]?.id ?? ""}:${
     relay.lastRefreshedAt?.getTime() ?? 0
   }`;
@@ -384,8 +384,8 @@ export default function App({
                 <Composer
                   isSending={relay.isSending}
                   fileTransfer={relay.fileTransfer}
-                  onSendText={async text => { await relay.sendText(text); if (surface === "sidepanel") setComposerOpen(false); }}
-                  onSendFile={async file => { await relay.sendFile(file); if (surface === "sidepanel") setComposerOpen(false); }}
+                  onSendText={relay.sendText}
+                  onSendFile={relay.sendFile}
                   onCancelFileUpload={relay.cancelFileUpload}
                   onResetFileTransfer={relay.resetFileTransfer}
                 />

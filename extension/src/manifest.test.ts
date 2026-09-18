@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import manifest from "../public/manifest.json";
+import { existsSync } from "node:fs";
 
 describe("Edge extension manifest", () => {
+  it("has a bundled native popup that can open before the background worker runs", () => {
+    const action = manifest.action as { default_popup?: string };
+    expect(action.default_popup).toBe("sidepanel.html?view=popup");
+    expect(existsSync(new URL("../" + action.default_popup?.split("?")[0], import.meta.url))).toBe(true);
+  });
+
   it("uses the native side panel with a small permission set", () => {
     expect(manifest.manifest_version).toBe(3);
     expect(Number(manifest.minimum_chrome_version)).toBeGreaterThanOrEqual(116);
