@@ -130,7 +130,7 @@ function SignedInExtension(input: {
       onSignOut={signOut}
       onReconnect={input.onReconnect}
       requiresReconnect={input.requiresReconnect}
-      device={new URLSearchParams(location.search).get("view") === "tab" && /Android/i.test(navigator.userAgent) ? "phone" : "desktop"}
+      device={/Android/i.test(navigator.userAgent) ? "phone" : "desktop"}
       relayOptions={relayOptions}
       syncPreferences={settings.isLoaded ? settings.preferences : undefined}
       onSyncPreferencesChange={

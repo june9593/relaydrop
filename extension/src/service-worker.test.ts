@@ -4,30 +4,52 @@ import { describe, expect, it, vi } from "vitest";
 
 const worker = readFileSync(new URL("../public/service-worker.js", import.meta.url), "utf8");
 
-function startWorker(sidePanel?: { setPanelBehavior: ReturnType<typeof vi.fn>; open?: ReturnType<typeof vi.fn> }) {
+function startWorker(sidePanel?: { setPanelBehavior: ReturnType<typeof vi.fn>; open?: ReturnType<typeof vi.fn> }, os = sidePanel ? "mac" : "android") {
   const chrome = {
     sidePanel,
     runtime: {
       onInstalled: { addListener: vi.fn() },
       onStartup: { addListener: vi.fn() },
       getURL: (path: string) => "chrome-extension://test/" + path,
-      getPlatformInfo: vi.fn(async () => ({ os: sidePanel ? "mac" : "android" }))
+      getPlatformInfo: vi.fn(async () => ({ os })),
+      getManifest: () => ({ action: { default_popup: "sidepanel.html?view=popup" } })
     },
-    action: { onClicked: { addListener: vi.fn() } },
+    action: { onClicked: { addListener: vi.fn() }, setPopup: vi.fn(async () => undefined) },
     tabs: { create: vi.fn(async () => ({ id: 123 })), update: vi.fn(), get: vi.fn() },
     storage: {
       local: { setAccessLevel: vi.fn(async () => undefined) },
       session: { setAccessLevel: vi.fn(async () => undefined), get: vi.fn(async () => ({})), set: vi.fn(async () => undefined) }
     }
   };
-  const context = { chrome, console, setup: undefined as Promise<void> | undefined };
+  const context = { chrome, console, navigator: { userAgent: os === "android" ? "Mozilla/5.0 (Android)" : "Mozilla/5.0 (Macintosh)" }, setup: undefined as Promise<void> | undefined };
   runInNewContext(worker.replace(/void configureExtension\(\);\s*$/, "globalThis.setup = configureExtension();"), context);
   return { chrome, ready: context.setup };
 }
 
 describe("extension launch surfaces", () => {
-  it("initializes safely and opens an extension page on Android without sidePanel", async () => {
+  it("keeps a native Android popup even when the unsupported sidePanel API is exposed and resolves", async () => {
+    const sidePanel = { setPanelBehavior: vi.fn(async () => undefined), open: vi.fn(async () => undefined) };
+    const { chrome, ready } = startWorker(sidePanel, "android");
+    await ready;
+    expect(chrome.action.setPopup).toHaveBeenCalledWith({ popup: "sidepanel.html?view=popup" });
+    expect(sidePanel.setPanelBehavior).not.toHaveBeenCalledWith({ openPanelOnActionClick: true });
+    expect(sidePanel.setPanelBehavior).toHaveBeenCalledWith({ openPanelOnActionClick: false });
+    await chrome.action.onClicked.addListener.mock.calls[0][0]({ id: 5 });
+    expect(sidePanel.open).not.toHaveBeenCalled();
+    expect(chrome.tabs.create).not.toHaveBeenCalled();
+    expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "sidepanel.html?view=popup" });
+  });
+
+  it("repairs a stale Android action before platform lookup finishes without creating a tab", async () => {
     const { chrome, ready } = startWorker();
+    await chrome.action.onClicked.addListener.mock.calls[0][0]({ id: 5 });
+    expect(chrome.tabs.create).not.toHaveBeenCalled();
+    expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "sidepanel.html?view=popup" });
+    await ready;
+  });
+
+  it("retains a desktop tab fallback when sidePanel is absent", async () => {
+    const { chrome, ready } = startWorker(undefined, "mac");
     await expect(ready).resolves.toBeUndefined();
     expect(chrome.storage.local.setAccessLevel).toHaveBeenCalled();
     const listener = chrome.action.onClicked.addListener.mock.calls[0]?.[0];
@@ -37,10 +59,11 @@ describe("extension launch surfaces", () => {
   });
 
   it("retains the native desktop side panel", async () => {
-    const sidePanel = { setPanelBehavior: vi.fn(async () => undefined) };
-    const { ready } = startWorker(sidePanel);
+    const sidePanel = { setPanelBehavior: vi.fn(async () => undefined), open: vi.fn(async () => undefined) };
+    const { chrome, ready } = startWorker(sidePanel);
     await ready;
     expect(sidePanel.setPanelBehavior).toHaveBeenCalledWith({ openPanelOnActionClick: true });
+    expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "" });
   });
 
   it("falls back if a platform exposes but rejects side-panel opening", async () => {
@@ -52,8 +75,30 @@ describe("extension launch surfaces", () => {
     expect(chrome.tabs.create).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves the popup and trusted storage usable when side-panel setup fails", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const { chrome, ready } = startWorker({
+        setPanelBehavior: vi.fn(async () => { throw new Error("unsupported"); }),
+        open: vi.fn()
+      });
+      await ready;
+      expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "sidepanel.html?view=popup" });
+      expect(chrome.storage.local.setAccessLevel).toHaveBeenCalledWith({ accessLevel: "TRUSTED_CONTEXTS" });
+      expect(chrome.storage.session.setAccessLevel).toHaveBeenCalledWith({ accessLevel: "TRUSTED_CONTEXTS" });
+    } finally { error.mockRestore(); }
+  });
+
+  it("keeps the popup on an unrecognized platform instead of assuming desktop support", async () => {
+    const sidePanel = { setPanelBehavior: vi.fn(async () => undefined), open: vi.fn() };
+    const { chrome, ready } = startWorker(sidePanel, "unknown");
+    await ready;
+    expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "sidepanel.html?view=popup" });
+    expect(sidePanel.setPanelBehavior).toHaveBeenCalledWith({ openPanelOnActionClick: false });
+  });
+
   it("reuses only an existing RelayDrop tab, never an unrelated tab with the stored ID", async () => {
-    const { chrome, ready } = startWorker();
+    const { chrome, ready } = startWorker(undefined, "mac");
     await ready;
     chrome.storage.session.get.mockResolvedValue({ "relaydrop.extension.mobile-tab": 123 });
     chrome.tabs.get.mockResolvedValue({ id: 123, url: "https://example.com/" });

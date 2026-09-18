@@ -1,6 +1,6 @@
 # Partner Center privacy disclosures
 
-These answers describe version 0.6.0. Match the actual field labels displayed by
+These answers describe version 0.6.1. Match the actual field labels displayed by
 Partner Center; do not select “no user data” merely because there is no RelayDrop
 content backend. The client accesses personal data and transmits selected
 content to Microsoft services.
@@ -13,7 +13,7 @@ RelayDrop lets a user send and retrieve notes, links, images, and files between 
 
 | Manifest permission | Text for the review form |
 | --- | --- |
-| `sidePanel` | Displays the RelayDrop personal inbox and file composer in the browser sidebar. |
+| `sidePanel` | Displays the RelayDrop personal inbox and file composer in the desktop browser sidebar. Android uses a bundled native extension popup. |
 | `identity` | Uses Microsoft OAuth with PKCE to sign in to a personal Microsoft account and receive the browser's extension-specific callback. |
 | `storage` | Keeps access tokens in session-only extension storage. Local storage holds account hints, preferences, up to 50 recent note/link texts and file metadata, OneDrive item IDs and version tags, refresh state, and account-scoped browser download IDs. Expired sign-in keeps cached items available; explicit logout clears authentication and the recent-item cache. |
 | `downloads` | Saves files selected by the user in the RelayDrop download folder, checks their local availability, reveals completed downloads, and removes a local copy on explicit request. |

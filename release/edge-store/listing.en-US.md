@@ -1,6 +1,6 @@
 # English store listing
 
-Prepared for the owner-authorized 0.6.0 store update.
+Draft for the 0.6.1 store update; not submitted.
 
 ## Extension name
 
@@ -14,7 +14,7 @@ This is the description already present in the accepted 0.5.2 manifest.
 
 ## Description
 
-RelayDrop is a personal inbox for moving notes, links, images, and files between your own devices. Open it in the Microsoft Edge sidebar on your computer or as an extension page in Edge on Android. Sign in with the same personal Microsoft account to access the same items.
+RelayDrop is a personal inbox for moving notes, links, images, and files between your own devices. Open it in the Microsoft Edge sidebar on your computer or in the native extension popup in Edge on Android. Sign in with the same personal Microsoft account to access the same items.
 
 SEND WHAT YOU NEED
 Type a note, paste a link, choose a file, or paste or drag an image into the composer. Preview selected images before sending. File uploads show progress and offer cancellation and retry when available.

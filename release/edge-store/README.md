@@ -1,11 +1,12 @@
 # Edge Add-ons submission kit
 
-Target package: **0.6.0**. The owner explicitly authorized merge and store
-publication on September 10, 2026, with physical-device checks to follow the
-store update. Those checks remain pending in [the acceptance record](VALIDATION-0.6.0.md).
+Target package: **0.6.1**, a local candidate not yet submitted. It fixes Android
+menu launch and restores the expanded composer. See [the current validation
+record](VALIDATION-0.6.1.md). The prior 0.6.0 release was authorized on September
+10; its Android launch failure was reproduced on a physical device on September 19.
 
 The English and Chinese copy now describes extension-store distribution on
-Android. The screenshots in `assets/` are refreshed from the 0.6.0 components
+Android. The screenshots in `assets/` are from the 0.6.0 components
 with fictional sample content; they are not physical-device test evidence.
 
 ## Previous 0.5.3 release

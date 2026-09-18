@@ -7,8 +7,9 @@ import ExtensionRoot from "./ExtensionRoot";
 import { applyStoredRelayDropTheme } from "../../src/settings/theme";
 
 document.documentElement.dataset.surface = "sidepanel";
-if (new URLSearchParams(location.search).get("view") === "tab") {
-  document.documentElement.dataset.extensionView = "tab";
+const extensionView = new URLSearchParams(location.search).get("view");
+if (extensionView === "tab" || extensionView === "popup") {
+  document.documentElement.dataset.extensionView = extensionView;
 }
 applyStoredRelayDropTheme();
 
