@@ -3221,6 +3221,28 @@ html[data-extension-view="popup"] body {
   html[data-extension-view="popup"],
   html[data-extension-view="popup"] body {
     width: 100vw;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--extension-popup-frame, #ffffff);
+  }
+
+  html[data-extension-view="popup"] #root {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    border-radius: 24px 24px 0 0;
+    clip-path: inset(0 round 24px 24px 0 0);
+    background: var(--canvas);
+  }
+}
+
+/* The browser's drag-handle surface follows its color scheme, independently
+   of RelayDrop's selected theme. Transparent WebContents paint white on Android. */
+@media (pointer: coarse) and (prefers-color-scheme: dark) {
+  html[data-extension-view="popup"] {
+    --extension-popup-frame: #292929;
   }
 }
 

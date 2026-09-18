@@ -21,7 +21,7 @@ function startWorker(sidePanel?: { setPanelBehavior: ReturnType<typeof vi.fn>; o
       session: { setAccessLevel: vi.fn(async () => undefined), get: vi.fn(async () => ({})), set: vi.fn(async () => undefined) }
     }
   };
-  const context = { chrome, console, setup: undefined as Promise<void> | undefined };
+  const context = { chrome, console, navigator: { userAgent: os === "android" ? "Mozilla/5.0 (Android)" : "Mozilla/5.0 (Macintosh)" }, setup: undefined as Promise<void> | undefined };
   runInNewContext(worker.replace(/void configureExtension\(\);\s*$/, "globalThis.setup = configureExtension();"), context);
   return { chrome, ready: context.setup };
 }
@@ -36,10 +36,20 @@ describe("extension launch surfaces", () => {
     expect(sidePanel.setPanelBehavior).toHaveBeenCalledWith({ openPanelOnActionClick: false });
     await chrome.action.onClicked.addListener.mock.calls[0][0]({ id: 5 });
     expect(sidePanel.open).not.toHaveBeenCalled();
+    expect(chrome.tabs.create).not.toHaveBeenCalled();
+    expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "sidepanel.html?view=popup" });
   });
 
-  it("retains a tab fallback if an onClicked event is delivered without sidePanel", async () => {
+  it("repairs a stale Android action before platform lookup finishes without creating a tab", async () => {
     const { chrome, ready } = startWorker();
+    await chrome.action.onClicked.addListener.mock.calls[0][0]({ id: 5 });
+    expect(chrome.tabs.create).not.toHaveBeenCalled();
+    expect(chrome.action.setPopup).toHaveBeenLastCalledWith({ popup: "sidepanel.html?view=popup" });
+    await ready;
+  });
+
+  it("retains a desktop tab fallback when sidePanel is absent", async () => {
+    const { chrome, ready } = startWorker(undefined, "mac");
     await expect(ready).resolves.toBeUndefined();
     expect(chrome.storage.local.setAccessLevel).toHaveBeenCalled();
     const listener = chrome.action.onClicked.addListener.mock.calls[0]?.[0];
@@ -88,7 +98,7 @@ describe("extension launch surfaces", () => {
   });
 
   it("reuses only an existing RelayDrop tab, never an unrelated tab with the stored ID", async () => {
-    const { chrome, ready } = startWorker();
+    const { chrome, ready } = startWorker(undefined, "mac");
     await ready;
     chrome.storage.session.get.mockResolvedValue({ "relaydrop.extension.mobile-tab": 123 });
     chrome.tabs.get.mockResolvedValue({ id: 123, url: "https://example.com/" });

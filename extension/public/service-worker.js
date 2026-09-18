@@ -1,4 +1,5 @@
 let useDesktopSidePanel = false;
+let platformOS;
 
 async function configureLaunchSurface() {
   // Keep a declarative popup available without waiting for this worker. API
@@ -7,6 +8,7 @@ async function configureLaunchSurface() {
   const popup = chrome.runtime.getManifest().action.default_popup;
   await chrome.action.setPopup({ popup });
   const { os } = await chrome.runtime.getPlatformInfo();
+  platformOS = os;
   if (["win", "mac", "linux", "cros", "openbsd"].includes(os) &&
       chrome.sidePanel?.setPanelBehavior && chrome.sidePanel?.open) {
     await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
@@ -61,6 +63,11 @@ async function openExtensionTab() {
 }
 
 chrome.action.onClicked.addListener((tab) => {
+  if (platformOS === "android" || /Android/i.test(globalThis.navigator?.userAgent ?? "")) {
+    // A stale empty override can deliver this event during an update/startup.
+    // Repair the popup for the next click; never turn a phone action into a tab.
+    return chrome.action.setPopup({ popup: chrome.runtime.getManifest().action.default_popup });
+  }
   if (useDesktopSidePanel && Number.isInteger(tab?.id)) {
     // Invoke inside the user gesture, without an awaited platform lookup.
     try {
